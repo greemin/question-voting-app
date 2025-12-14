@@ -1,1 +1,21 @@
-node_modules/
+# Compiled binaries, temporary files
+*.exe
+*.dll
+*.so
+
+# Go cache and test files
+.cache/
+testdata/
+
+# Go vendor (if manually vendoring)
+vendor/
+
+
+# Node dependencies (HUGE, regenerated every time)
+node_modules
+
+# Build output from Vite
+dist
+
+# Vite/development cache
+.vite/
