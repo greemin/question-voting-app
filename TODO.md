@@ -10,14 +10,14 @@ Phase 1: Testing & Refinement (Current Codebase)
        	    [X] frontend
         
         [X] move project to git platform
+
+        [ ] isolate storage logic and define storer interface
         
         [ ] typescript migration?
 
-        [ ] mongodb migration
-
     [ ] Backend Unit Tests (Go):
 
-        [ ] Test loadSessionData and saveSessionData for file I/O and locking integrity.
+        [ ] Test storer interface for correctly saving, loading and deleting data.
 
         [ ] Test CreateSessionHandler to ensure a file and Admin ID are correctly created.
 
@@ -43,6 +43,8 @@ Phase 1: Testing & Refinement (Current Codebase)
 
 Phase 2: Feature Implementation (New Functionality)
 
+    [ ] mongodb migration
+    
     [ ] Live Updates:
 
         [ ] Frontend: Update the polling mechanism to a more efficient solution like WebSockets (Go's golang.org/x/net/websocket or a third-party library) for real-time question and vote updates.
