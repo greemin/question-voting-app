@@ -10,6 +10,7 @@ testdata/
 # Go vendor (if manually vendoring)
 vendor/
 
+data/
 
 # Node dependencies (HUGE, regenerated every time)
 node_modules

@@ -1,4 +1,4 @@
-module question-voting-app/backend
+module question-voting-app
 
 go 1.18
 

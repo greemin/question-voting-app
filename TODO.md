@@ -1,13 +1,17 @@
 📝 Project Development Checklist (Question Voting App)
 Phase 1: Testing & Refinement (Current Codebase)
 
-    [ ] General project/files structure and setup
+    [o] General project/files structure and setup
 
-        [ ] Move session JSON files into own folder away from source code (e.g., create a /data directory outside of /backend).
+        [X] Move session JSON files into own folder away from source code (e.g., create a /data directory outside of /backend).
 
-        [ ] Review and refine the entire project file tree structure (current structure feels weird).
+        [o] Review and refine the entire project file tree structure (current structure feels weird).
+       	    [X] backend
+       	    [ ] frontend
         
         [ ] move project to git platform and look for way for secure LLM access to current state of code
+        
+        [ ] mongodb migration
 
     [ ] Backend Unit Tests (Go):
 
