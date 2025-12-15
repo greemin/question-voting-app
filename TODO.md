@@ -5,12 +5,14 @@ Phase 1: Testing & Refinement (Current Codebase)
 
         [X] Move session JSON files into own folder away from source code (e.g., create a /data directory outside of /backend).
 
-        [o] Review and refine the entire project file tree structure (current structure feels weird).
+        [X] Review and refine the entire project file tree structure (current structure feels weird).
        	    [X] backend
-       	    [ ] frontend
+       	    [X] frontend
         
-        [ ] move project to git platform and look for way for secure LLM access to current state of code
+        [X] move project to git platform
         
+        [ ] typescript migration?
+
         [ ] mongodb migration
 
     [ ] Backend Unit Tests (Go):
