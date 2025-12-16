@@ -69,7 +69,7 @@ function VotingSessionPage(): JSX.Element {
       try {
         if (!sessionId) return;
         const status = await checkAdminStatus(sessionId);
-        setIsAdmin(status);
+        setIsAdmin(status.isAdmin);
       } catch (error) {
         console.error("Failed to verify admin status:", error);
       }

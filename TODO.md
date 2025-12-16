@@ -29,17 +29,17 @@ Phase 1: Testing & Refinement (Current Codebase)
 
     [X] typescript migration
 
-    [ ] Frontend Component Tests (RTL):
+    [X] Frontend Component Tests (RTL):
 
-        [ ] Test HomePage component rendering and successful navigation on button click.
+        [X] Test HomePage component rendering and successful navigation on button click.
 
-        [ ] Test QuestionForm component to ensure the input field works and calls the API correctly upon submission.
+        [X Test QuestionForm component to ensure the input field works and calls the API correctly upon submission.
 
-        [ ] Test QuestionItem component rendering of question text, votes, and user-friendly timestamp.
+        [X Test QuestionItem component rendering of question text, votes, and user-friendly timestamp.
 
-        [ ] Test QuestionItem vote button: check that it disables after a click and calls the API once.
+        [X] Test QuestionItem vote button: check that it disables after a click and calls the API once.
 
-        [ ] Test VotingSessionPage to ensure the Admin button correctly appears based on the checkAdminStatus API call.
+        [X Test VotingSessionPage to ensure the Admin button correctly appears based on the checkAdminStatus API call.
 
 Phase 2: Feature Implementation (New Functionality)
     
@@ -71,6 +71,8 @@ Phase 2: Feature Implementation (New Functionality)
       	    
       	    [ ] make as much question cards visible with mobile first in mind
 
+    [ ] set https flags to true for production (introduce env variables)
+    
     [ ] mongodb migration
 
     [ ] integration tests
