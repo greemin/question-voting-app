@@ -13,21 +13,21 @@ Phase 1: Testing & Refinement (Current Codebase)
 
         [X] isolate storage logic and define storer interface
         
-        [ ] typescript migration?
+    [X] Backend Unit Tests (Go):
 
-    [ ] Backend Unit Tests (Go):
+        [X] Test storer interface for correctly saving, loading and deleting data.
 
-        [ ] Test storer interface for correctly saving, loading and deleting data.
+        [X] Test CreateSessionHandler to ensure a file and Admin ID are correctly created.
 
-        [ ] Test CreateSessionHandler to ensure a file and Admin ID are correctly created.
+        [X] Test CheckAdminHandler to ensure the correct boolean is returned based on the userSessionId cookie.
 
-        [ ] Test CheckAdminHandler to ensure the correct boolean is returned based on the userSessionId cookie.
+        [X] Test EndSessionHandler (DELETE) with both authorized (admin) and unauthorized (non-admin) userSessionId cookies.
 
-        [ ] Test EndSessionHandler (DELETE) with both authorized (admin) and unauthorized (non-admin) userSessionId cookies.
+        [X] Test AddQuestionHandler with a malformed payload (e.g., missing question text).
 
-        [ ] Test AddQuestionHandler with a malformed payload (e.g., missing question text).
+        [X] Test VoteHandler to verify that a user cannot vote more than once per question.
 
-        [ ] Test VoteHandler to verify that a user cannot vote more than once per question.
+    [ ] typescript migration
 
     [ ] Frontend Component Tests (RTL):
 
@@ -42,8 +42,6 @@ Phase 1: Testing & Refinement (Current Codebase)
         [ ] Test VotingSessionPage to ensure the Admin button correctly appears based on the checkAdminStatus API call.
 
 Phase 2: Feature Implementation (New Functionality)
-
-    [ ] mongodb migration
     
     [ ] Live Updates:
 
@@ -72,3 +70,7 @@ Phase 2: Feature Implementation (New Functionality)
       	    [ ] components library like material ui? other inspiration from modern websites?
       	    
       	    [ ] make as much question cards visible with mobile first in mind
+
+    [ ] mongodb migration
+
+    [ ] integration tests
