@@ -76,3 +76,5 @@ Phase 2: Feature Implementation (New Functionality)
     [ ] mongodb migration
 
     [ ] integration tests
+
+    [ ] add testbuild trigger to github?
