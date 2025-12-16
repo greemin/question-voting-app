@@ -10,20 +10,37 @@ import (
 	"sync"
 )
 
-// dataMutex protects access to the JSON files to prevent race conditions
-var dataMutex sync.Mutex
-
-// sessionFilePath generates the full path for a session file.
-func sessionFilePath(sessionID string) string {
-	return filepath.Join("data", fmt.Sprintf("session%s.json", sessionID))
+// Storer defines the interface for session data storage.
+type Storer interface {
+	LoadSessionData(sessionID string) (*models.SessionData, error)
+	SaveSessionData(data *models.SessionData) error
+	DeleteSessionData(sessionID string) error
 }
 
-// loadSessionData reads and parses the JSON file for a given session.
-func LoadSessionData(sessionID string) (*models.SessionData, error) {
-	dataMutex.Lock()
-	defer dataMutex.Unlock()
+// FileStorage implements the Storer interface for file-based storage.
+type FileStorage struct {
+	basePath string
+	mutex    sync.Mutex
+}
 
-	filePath := sessionFilePath(sessionID)
+// NewFileStorage creates a new instance of FileStorage.
+func NewFileStorage(basePath string) *FileStorage {
+	return &FileStorage{
+		basePath: basePath,
+	}
+}
+
+// sessionFilePath generates the full path for a session file.
+func (fs *FileStorage) sessionFilePath(sessionID string) string {
+	return filepath.Join(fs.basePath, fmt.Sprintf("session-%s.json", sessionID))
+}
+
+// LoadSessionData reads and parses the JSON file for a given session.
+func (fs *FileStorage) LoadSessionData(sessionID string) (*models.SessionData, error) {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+
+	filePath := fs.sessionFilePath(sessionID)
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -40,18 +57,17 @@ func LoadSessionData(sessionID string) (*models.SessionData, error) {
 	return &sessionData, nil
 }
 
-// saveSessionData writes the given SessionData struct back to its JSON file.
-func SaveSessionData(data *models.SessionData) error {
-	dataMutex.Lock()
-	defer dataMutex.Unlock()
+// SaveSessionData writes the given SessionData struct back to its JSON file.
+func (fs *FileStorage) SaveSessionData(data *models.SessionData) error {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 
-	filePath := sessionFilePath(data.SessionID)
+	filePath := fs.sessionFilePath(data.SessionID)
 	jsonData, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	// Write the data to the file
 	if err := ioutil.WriteFile(filePath, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
@@ -59,14 +75,14 @@ func SaveSessionData(data *models.SessionData) error {
 	return nil
 }
 
-// deleteSessionData deletes the JSON file for a given session.
-func DeleteSessionData(sessionID string) error {
-	dataMutex.Lock()
-	defer dataMutex.Unlock()
+// DeleteSessionData deletes the JSON file for a given session.
+func (fs *FileStorage) DeleteSessionData(sessionID string) error {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 
-	filePath := sessionFilePath(sessionID)
+	filePath := fs.sessionFilePath(sessionID)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil
+		return nil // File doesn't exist, so we can consider it "deleted"
 	}
 
 	if err := os.Remove(filePath); err != nil {

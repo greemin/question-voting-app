@@ -11,8 +11,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// API holds the dependencies for the API handlers.
+type API struct {
+	Storer storage.Storer
+}
+
+// New creates a new API instance.
+func New(storer storage.Storer) *API {
+	return &API{Storer: storer}
+}
+
 // getUserSessionID extracts the userSessionId from the cookie or generates a new one.
-func getUserSessionID(w http.ResponseWriter, r *http.Request) string {
+func (a *API) getUserSessionID(w http.ResponseWriter, r *http.Request) string {
 	cookie, err := r.Cookie("userSessionId")
 	if err == nil {
 		return cookie.Value
@@ -34,8 +44,8 @@ func getUserSessionID(w http.ResponseWriter, r *http.Request) string {
 
 // CreateSessionHandler creates a new voting session.
 // POST /api/session
-func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
-	adminID := getUserSessionID(w, r)
+func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
+	adminID := a.getUserSessionID(w, r)
 	sessionID := uuid.New().String()
 
 	newSession := &models.SessionData{
@@ -45,38 +55,35 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Questions:   []models.Question{},
 	}
 
-	if err := storage.SaveSessionData(newSession); err != nil {
+	if err := a.Storer.SaveSessionData(newSession); err != nil {
 		http.Error(w, "Failed to create session data", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	// Return both the sessionId and the adminID (which is in the cookie)
 	json.NewEncoder(w).Encode(map[string]string{
 		"sessionId": sessionID,
-		"adminId":   adminID, // Frontend uses this to check cookie
+		"adminId":   adminID,
 	})
 }
 
 // GetQuestionsHandler retrieves and sorts all questions for a session.
 // GET /api/session/{sessionId}/questions
-func GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
-	// Path should be /api/session/{sessionId}/questions
 	if len(parts) < 4 || parts[len(parts)-1] != "questions" {
 		http.Error(w, "Invalid path format", http.StatusBadRequest)
 		return
 	}
 	sessionID := parts[3]
 
-	sessionData, err := storage.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	// Sort questions by Votes (descending)
 	sort.Slice(sessionData.Questions, func(i, j int) bool {
 		return sessionData.Questions[i].Votes > sessionData.Questions[j].Votes
 	})
@@ -87,9 +94,9 @@ func GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 
 // SubmitQuestionHandler adds a new question to the session.
 // POST /api/session/{sessionId}/questions
-func SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
+func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.Split(r.URL.Path, "/")[3]
-	getUserSessionID(w, r) // Ensure user has a session cookie
+	a.getUserSessionID(w, r) // Ensure user has a session cookie
 
 	var submission models.QuestionSubmission
 	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil || submission.Text == "" {
@@ -97,7 +104,7 @@ func SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionData, err := storage.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -117,7 +124,7 @@ func SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData.Questions = append(sessionData.Questions, newQuestion)
 
-	if err := storage.SaveSessionData(sessionData); err != nil {
+	if err := a.Storer.SaveSessionData(sessionData); err != nil {
 		http.Error(w, "Failed to save question", http.StatusInternalServerError)
 		return
 	}
@@ -128,18 +135,17 @@ func SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 // VoteQuestionHandler increments the vote count for a question.
 // PUT /api/session/{sessionId}/questions/{questionId}/vote
-func VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
+func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
-	// Path should be /api/session/{sessionId}/questions/{questionId}/vote
 	if len(parts) < 6 || parts[len(parts)-1] != "vote" {
 		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
 		return
 	}
 	sessionID := parts[3]
 	questionID := parts[5]
-	userID := getUserSessionID(w, r)
+	userID := a.getUserSessionID(w, r)
 
-	sessionData, err := storage.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -152,7 +158,6 @@ func VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	for i, q := range sessionData.Questions {
 		if q.ID == questionID {
-			// Check for duplicate vote
 			for _, voterID := range q.Voters {
 				if voterID == userID {
 					http.Error(w, "Already voted on this question in this session", http.StatusForbidden)
@@ -160,11 +165,10 @@ func VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// Perform the vote
 			sessionData.Questions[i].Votes++
 			sessionData.Questions[i].Voters = append(sessionData.Questions[i].Voters, userID)
 
-			if err := storage.SaveSessionData(sessionData); err != nil {
+			if err := a.Storer.SaveSessionData(sessionData); err != nil {
 				http.Error(w, "Failed to record vote", http.StatusInternalServerError)
 				return
 			}
@@ -180,25 +184,22 @@ func VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 // EndSessionHandler allows the admin to end the session and delete the file.
 // DELETE /api/session/{sessionId}
-func EndSessionHandler(w http.ResponseWriter, r *http.Request) {
+func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.Split(r.URL.Path, "/")[3]
-	userID := getUserSessionID(w, r) // Gets the current user's session ID
+	userID := a.getUserSessionID(w, r)
 
-	sessionData, err := storage.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
-		// If data is not found, maybe it was already deleted. Treat as successful end.
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	// Admin check: does the current user's cookie ID match the stored admin ID?
 	if sessionData.AdminUserID != userID {
 		http.Error(w, "Unauthorized: Only the session creator can end the session.", http.StatusForbidden)
 		return
 	}
 
-	// Delete the file
-	if err := storage.DeleteSessionData(sessionID); err != nil {
+	if err := a.Storer.DeleteSessionData(sessionID); err != nil {
 		http.Error(w, "Failed to delete session file", http.StatusInternalServerError)
 		return
 	}
@@ -208,20 +209,17 @@ func EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 // CheckAdminHandler checks if the current user (via cookie) is the session admin.
 // GET /api/session/{sessionId}/check-admin
-func CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
+func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 4 {
 		http.Error(w, "Invalid session ID in path", http.StatusBadRequest)
 		return
 	}
 	sessionID := parts[3]
+	currentUserID := a.getUserSessionID(w, r)
 
-	// The backend uses the HttpOnly cookie for authorization
-	currentUserID := getUserSessionID(w, r)
-
-	sessionData, err := storage.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
-		// If the session doesn't exist, they can't be admin
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"isAdmin": false})
 		return

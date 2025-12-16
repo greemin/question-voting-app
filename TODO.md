@@ -11,7 +11,7 @@ Phase 1: Testing & Refinement (Current Codebase)
         
         [X] move project to git platform
 
-        [ ] isolate storage logic and define storer interface
+        [X] isolate storage logic and define storer interface
         
         [ ] typescript migration?
 
