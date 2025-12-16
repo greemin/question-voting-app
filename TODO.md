@@ -33,13 +33,13 @@ Phase 1: Testing & Refinement (Current Codebase)
 
         [X] Test HomePage component rendering and successful navigation on button click.
 
-        [X Test QuestionForm component to ensure the input field works and calls the API correctly upon submission.
+        [X] Test QuestionForm component to ensure the input field works and calls the API correctly upon submission.
 
-        [X Test QuestionItem component rendering of question text, votes, and user-friendly timestamp.
+        [X] Test QuestionItem component rendering of question text, votes, and user-friendly timestamp.
 
         [X] Test QuestionItem vote button: check that it disables after a click and calls the API once.
 
-        [X Test VotingSessionPage to ensure the Admin button correctly appears based on the checkAdminStatus API call.
+        [X] Test VotingSessionPage to ensure the Admin button correctly appears based on the checkAdminStatus API call.
 
 Phase 2: Feature Implementation (New Functionality)
     
