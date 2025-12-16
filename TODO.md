@@ -27,7 +27,7 @@ Phase 1: Testing & Refinement (Current Codebase)
 
         [X] Test VoteHandler to verify that a user cannot vote more than once per question.
 
-    [ ] typescript migration
+    [X] typescript migration
 
     [ ] Frontend Component Tests (RTL):
 

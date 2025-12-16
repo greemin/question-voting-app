@@ -1,13 +1,20 @@
-// /frontend/src/components/QuestionItem.jsx
+// /frontend/src/components/QuestionItem.tsx
 import React from 'react';
-import { voteQuestion } from '../api/sessionApi';
+import { voteQuestion } from '../api/sessionApi.ts';
+import { Question } from '../models/Question';
 
-function QuestionItem({ sessionId, question, onVoteSuccess }) {
+interface QuestionItemProps {
+  sessionId: string;
+  question: Question;
+  onVoteSuccess: () => void;
+}
+
+function QuestionItem({ sessionId, question, onVoteSuccess }: QuestionItemProps): JSX.Element {
   const handleVote = async () => {
     try {
       await voteQuestion(sessionId, question.id);
       onVoteSuccess();
-    } catch (error) {
+    } catch (error: any) {
       alert(`Vote failed: ${error.message}`);
     }
   };

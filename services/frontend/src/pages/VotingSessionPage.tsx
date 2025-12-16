@@ -1,26 +1,28 @@
-// /frontend/src/pages/VotingSessionPage.jsx
+// /frontend/src/pages/VotingSessionPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getQuestions, endSession, checkAdminStatus } from '../api/sessionApi';
-import QuestionForm from '../components/QuestionForm';
-import QuestionItem from '../components/QuestionItem';
+import { getQuestions, endSession, checkAdminStatus } from '../api/sessionApi.ts';
+import QuestionForm from '../components/QuestionForm.tsx';
+import QuestionItem from '../components/QuestionItem.tsx';
+import { Question } from '../models/Question';
 
 // Helper to get the admin ID from the cookie for UI check
-const getCookieAdminID = () => {
+const getCookieAdminID = (): string | null => {
   const cookieMatch = document.cookie.match(new RegExp('(^| )userSessionId=([^;]+)'));
   return cookieMatch ? cookieMatch[2] : null;
 };
 
-function VotingSessionPage() {
-  const { sessionId } = useParams();
+function VotingSessionPage(): JSX.Element {
+  const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminId, setAdminId] = useState(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [adminId, setAdminId] = useState<string | null>(null);
 
   const fetchQuestions = useCallback(async () => {
     try {
+      if (!sessionId) return;
       const data = await getQuestions(sessionId);
       setQuestions(data);
       setLoading(false);
@@ -37,7 +39,7 @@ function VotingSessionPage() {
         // For UI purposes, we'll optimistically set the adminId from the cookie.
         setAdminId(currentCookieId);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch questions:', error);
       alert(error.message);
       // If session is closed (404/403), redirect home or show message
@@ -52,10 +54,11 @@ function VotingSessionPage() {
     if (!window.confirm("Are you sure you want to end this voting session? This will delete all questions.")) return;
     
     try {
+      if (!sessionId) return;
       await endSession(sessionId);
       alert('Session ended and data deleted successfully!');
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       alert(`Failed to end session: ${error.message}`);
     }
   };
@@ -64,6 +67,7 @@ function VotingSessionPage() {
   useEffect(() => {
     async function verifyAdmin() {
       try {
+        if (!sessionId) return;
         const status = await checkAdminStatus(sessionId);
         setIsAdmin(status);
       } catch (error) {
@@ -101,7 +105,7 @@ function VotingSessionPage() {
         </div>
       )}
 
-      <QuestionForm sessionId={sessionId} onQuestionSubmit={fetchQuestions} />
+      <QuestionForm sessionId={sessionId!} onQuestionSubmit={fetchQuestions} />
 
       <h2>Questions ({questions.length})</h2>
       {questions.length === 0 ? (
@@ -111,7 +115,7 @@ function VotingSessionPage() {
           {questions.map((q) => (
             <QuestionItem 
               key={q.id} 
-              sessionId={sessionId} 
+              sessionId={sessionId!} 
               question={q} 
               onVoteSuccess={fetchQuestions} // Re-fetch to update votes and sort
             />

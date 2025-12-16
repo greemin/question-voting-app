@@ -1,10 +1,10 @@
-// /frontend/src/pages/HomePage.jsx
+// /frontend/src/pages/HomePage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createSession } from '../api/sessionApi';
+import { createSession } from '../api/sessionApi.ts';
 
-function HomePage() {
-  const [loading, setLoading] = useState(false);
+function HomePage(): JSX.Element {
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleCreateSession = async () => {
@@ -13,7 +13,7 @@ function HomePage() {
       const data = await createSession();
       // data.sessionId is returned, and adminId is confirmed via cookie
       navigate(`/votingSession/${data.sessionId}`);
-    } catch (error) {
+    } catch (error: any) {
       alert(`Failed to create session: ${error.message}`);
     } finally {
       setLoading(false);

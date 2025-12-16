@@ -1,12 +1,17 @@
-// /frontend/src/components/QuestionForm.jsx
+// /frontend/src/components/QuestionForm.tsx
 import React, { useState } from 'react';
-import { submitQuestion } from '../api/sessionApi';
+import { submitQuestion } from '../api/sessionApi.ts';
 
-function QuestionForm({ sessionId, onQuestionSubmit }) {
-  const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
+interface QuestionFormProps {
+  sessionId: string;
+  onQuestionSubmit: () => void;
+}
 
-  const handleSubmit = async (e) => {
+function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.Element {
+  const [text, setText] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
 
@@ -15,7 +20,7 @@ function QuestionForm({ sessionId, onQuestionSubmit }) {
       await submitQuestion(sessionId, text);
       setText('');
       onQuestionSubmit(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
       alert(`Submission failed: ${error.message}`);
     } finally {
       setLoading(false);
