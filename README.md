@@ -1,4 +1,4 @@
-# 🚀 Question Voting App
+# :question: :ballot_box_with_check: Question Voting App
 
 A real-time, lightweight application for crowdsourcing and ranking questions during a presentation, Q&A session, or meeting. Built using a Go backend for fast API handling and a React/Vite frontend for a modern, responsive user experience.
 
