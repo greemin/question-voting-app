@@ -1,80 +1,92 @@
-📝 Project Development Checklist (Question Voting App)
-Phase 1: Testing & Refinement (Current Codebase)
+# 📝 Project Roadmap: Question Voting App
 
-    [o] General project/files structure and setup
+This document outlines the development plan for the application. Phases are organized by priority, focusing on building a robust, scalable, and user-friendly platform.
 
-        [X] Move session JSON files into own folder away from source code (e.g., create a /data directory outside of /backend).
+---
 
-        [X] Review and refine the entire project file tree structure (current structure feels weird).
-       	    [X] backend
-       	    [X] frontend
-        
-        [X] move project to git platform
+### ✅ **Phase 0: Foundation & MVP (Completed)**
 
-        [X] isolate storage logic and define storer interface
-        
-    [X] Backend Unit Tests (Go):
+-   [x] **Project Scaffolding**: Initial repository and file structure setup for frontend and backend services.
+-   [x] **Storage Abstraction**: Implemented a `Storer` interface in the backend to decouple storage logic.
+-   [x] **Backend Unit Tests**: Comprehensive tests for API handlers and storage functionality.
+-   [x] **TypeScript Migration**: Converted the frontend codebase to TypeScript for improved type safety.
+-   [x] **Frontend Component Tests**: Built out a suite of tests for React components and pages using RTL.
 
-        [X] Test storer interface for correctly saving, loading and deleting data.
+---
 
-        [X] Test CreateSessionHandler to ensure a file and Admin ID are correctly created.
+### 🚀 **Phase 1: Core Architecture & Production Readiness (Highest Priority)**
 
-        [X] Test CheckAdminHandler to ensure the correct boolean is returned based on the userSessionId cookie.
+*This phase focuses on upgrading the core architecture to be scalable, real-time, and ready for deployment.*
 
-        [X] Test EndSessionHandler (DELETE) with both authorized (admin) and unauthorized (non-admin) userSessionId cookies.
+-   [ ] **Containerize the Application (Docker)**
+    -   Simplify development setup and standardize deployment. This is a prerequisite for easier database management.
+    -   **Action**: Create a `Dockerfile` for both the Go backend and the React frontend.
+    -   **Action**: Create a `docker-compose.yml` file to orchestrate the services (including a MongoDB service) for easy local development.
 
-        [X] Test AddQuestionHandler with a malformed payload (e.g., missing question text).
+-   [ ] **Database Migration to MongoDB**
+    -   Replace the current file-based storage with a MongoDB database to ensure scalability and reliability.
+    -   **Action**: Implement a new `MongoStorer` that satisfies the `Storer` interface.
+    -   **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
 
-        [X] Test VoteHandler to verify that a user cannot vote more than once per question.
+-   [ ] **Implement Real-Time Updates with WebSockets**
+    -   Transition from HTTP polling to WebSockets for instant updates to questions and votes.
+    -   **Action (Backend)**: Integrate a WebSocket library (e.g., `gorilla/websocket`) to broadcast updates to clients in a session.
+    -   **Action (Frontend)**: Use the native `WebSocket` API to listen for and display real-time changes.
 
-    [X] typescript migration
+-   [ ] **Externalize Configuration**
+    -   Remove hardcoded configuration values from the codebase.
+    -   **Action**: Move all environment-specific values (ports, CORS origins, database URIs, cookie settings) to environment variables. Consider a library like `Viper` for structured configuration.
 
-    [X] Frontend Component Tests (RTL):
 
-        [X] Test HomePage component rendering and successful navigation on button click.
+---
 
-        [X] Test QuestionForm component to ensure the input field works and calls the API correctly upon submission.
+### 🛡️ **Phase 2: Security & Admin Features**
 
-        [X] Test QuestionItem component rendering of question text, votes, and user-friendly timestamp.
+*This phase improves the application's security and expands admin capabilities.*
 
-        [X] Test QuestionItem vote button: check that it disables after a click and calls the API once.
+-   [ ] **Improve Admin Authorization**
+    -   Replace the simple cookie-based admin check with a more secure method.
+    -   **Action**: Implement a secret token-based system. When a session is created, return a unique admin token to the creator, who must then provide it in an `Authorization` header for protected actions.
 
-        [X] Test VotingSessionPage to ensure the Admin button correctly appears based on the checkAdminStatus API call.
+-   [ ] **Allow Admin to Delete a Question**
+    -   Give session admins more control over the content.
+    -   **Action (Backend)**: Create a new `DELETE /api/session/{sessionId}/questions/{questionId}` endpoint, protected by the new admin authorization.
+    -   **Action (Frontend)**: Add a "Delete" button to `QuestionItem.tsx` that is only visible to the admin.
 
-Phase 2: Feature Implementation (New Functionality)
-    
-    [ ] Live Updates:
+---
 
-        [ ] Frontend: Update the polling mechanism to a more efficient solution like WebSockets (Go's golang.org/x/net/websocket or a third-party library) for real-time question and vote updates.
+### ✨ **Phase 3: UX/UI & Feature Enhancements**
 
-        [ ] Backend: Implement the WebSocket connection and broadcast vote/question updates to all connected clients.
+*This phase focuses on improving the user experience and visual design.*
 
-    [ ] Voting Session Features:
+-   [ ] **UI Redesign & Component Library**
+    -   Overhaul the visual design for a modern, mobile-first experience.
+    -   **Action**: Adopt a React component library like **Material-UI (MUI)**, **Chakra UI**, or **Mantine** to standardize components and accelerate development.
 
-        [ ] Backend: Add a feature to allow the Admin to delete an individual question.
+-   [ ] **Implement Confirmation Modals**
+    -   Prevent accidental destructive actions.
+    -   **Action**: Use the chosen component library to add a confirmation dialog before an admin ends a session or deletes a question.
 
-        [ ] Frontend: Add a Delete Question button (visible only to Admin) to the QuestionItem component.
+-   [ ] **Add "Copy Link" Button**
+    -   Make it easier for users to share the session URL.
+    -   **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
 
-        [ ] Frontend: Implement confirmation modal/dialog before deleting a session or a question.
+-   [ ] **Improve Input Validation & Error Handling**
+    -   Provide better feedback to the user.
+    -   **Action (Frontend)**: Add basic input validation (e.g., max question length) to the `QuestionForm`.
+    -   **Action (Frontend)**: Implement a toast notification system (e.g., `react-hot-toast`) to display API errors and other feedback.
 
-    [ ] UX/UI Improvements:
+---
 
-        [ ] Implement a simple "Copy Link" button for the session URL to make sharing easier.
+### 🧪 **Phase 4: Testing & Deployment**
 
-        [ ] Add basic input validation on the frontend (e.g., max question length).
+*This phase ensures the application is reliable and easy to deploy.*
 
-        [ ] Implement better error display for API failures (e.g., a toast notification instead of just console logging).
-        
-        [ ] general redesign
-        
-      	    [ ] components library like material ui? other inspiration from modern websites?
-      	    
-      	    [ ] make as much question cards visible with mobile first in mind
+-   [ ] **Add Integration Tests**
+    -   Test the full application flow from end to end.
+    -   **Action**: Write tests that cover user flows across both the frontend and backend (e.g., creating a session, submitting a question, and seeing it appear in real-time).
 
-    [ ] set https flags to true for production (introduce env variables)
-    
-    [ ] mongodb migration
-
-    [ ] integration tests
-
-    [ ] add testbuild trigger to github?
+-   [ ] **Set Up CI/CD Pipeline**
+    -   Automate testing and deployment.
+    -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
+    -   **Action**: Extend the workflow to build and push Docker images, and eventually deploy to a hosting provider.
