@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./services/backend:/app
+    ports:
+      - "8081:8081"
+
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./services/frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"

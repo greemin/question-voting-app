@@ -9,10 +9,11 @@ export default defineConfig({
     setupFiles: './tests/setup.ts',
   },
   server: {
+    host: '0.0.0.0', // Listen on all available network interfaces
     port: 5173, // Default Vite port
     proxy: {
       '/api': {
-        target: 'http://localhost:8081', // Proxy to Go backend
+        target: 'http://backend:8081', // Proxy to Go backend service
         changeOrigin: true,
         secure: false,
       },
