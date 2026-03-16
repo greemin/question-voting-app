@@ -18,7 +18,7 @@ This document outlines the development plan for the application. Phases are orga
 
 *This phase focuses on upgrading the core architecture to be scalable, real-time, and ready for deployment.*
 
--   [x] **Containerize the Application (Docker)**
+-   [o] **Containerize the Application (Docker)**
     -   Simplify development setup and standardize deployment. This is a prerequisite for easier database management.
     -   **Action**: Create a `Dockerfile` for both the Go backend and the React frontend.
     -   **Action**: Create a `docker-compose.yml` file to orchestrate the services (including a MongoDB service) for easy local development.
@@ -31,6 +31,7 @@ This document outlines the development plan for the application. Phases are orga
     -   Replace the current file-based storage with a MongoDB database to ensure scalability and reliability.
     -   **Action**: Implement a new `MongoStorer` that satisfies the `Storer` interface.
     -   **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
+    -   **Action**: Check that mongodb is started in secure mode.
 
 -   [ ] **Implement Real-Time Updates with WebSockets**
     -   Transition from HTTP polling to WebSockets for instant updates to questions and votes.

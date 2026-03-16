@@ -2,18 +2,18 @@ package models
 
 // SessionData represents the structure of the data stored in session${sessionId}.json
 type SessionData struct {
-	SessionID   string     `json:"sessionId"`
-	AdminUserID string     `json:"adminUserId"`
-	IsActive    bool       `json:"isActive"`
-	Questions   []Question `json:"questions"`
+	SessionID   string     `json:"sessionId" bson:"sessionId"`
+	AdminUserID string     `json:"adminUserId" bson:"adminUserId"`
+	IsActive    bool       `json:"isActive" bson:"isActive"`
+	Questions   []Question `json:"questions" bson:"questions"`
 }
 
 // Question represents a single question submitted by a user
 type Question struct {
-	ID     string   `json:"id"`
-	Text   string   `json:"text"`
-	Votes  int      `json:"votes"`
-	Voters []string `json:"voters"` // userSessionIds who have voted
+	ID     string   `json:"id" bson:"id"`
+	Text   string   `json:"text" bson:"text"`
+	Votes  int      `json:"votes" bson:"votes"`
+	Voters []string `json:"voters" bson:"voters"` // userSessionIds who have voted
 }
 
 // QuestionSubmission is used for the POST request body

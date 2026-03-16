@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"question-voting-app/internal/handlers"
 	"question-voting-app/internal/storage"
 	"strings"
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -27,7 +33,29 @@ func main() {
 	}
 
 	// --- Dependencies Setup ---
-	storer := storage.NewFileStorage("data")
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		log.Fatal("MONGO_URI environment variable not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	clientOptions := options.Client().ApplyURI(mongoURI)
+	client, err := mongo.Connect(ctx, clientOptions)
+	if err != nil {
+		log.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
+
+	// Check the connection
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatalf("Failed to ping MongoDB: %v", err)
+	}
+
+	fmt.Println("Connected to MongoDB!")
+
+	storer := storage.NewMongoStorage(client, "question-voting-app", "sessions")
 	api := handlers.New(storer)
 
 	// --- API Routes Setup ---
