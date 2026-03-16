@@ -142,6 +142,10 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
 	questionID := parts[5]
 	userID := a.getUserSessionID(w, r)
 
@@ -185,7 +189,16 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 // EndSessionHandler allows the admin to end the session and delete the file.
 // DELETE /api/session/{sessionId}
 func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID := strings.Split(r.URL.Path, "/")[3]
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		http.Error(w, "Invalid session ID in path", http.StatusBadRequest)
+		return
+	}
+	sessionID := parts[3]
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
 	userID := a.getUserSessionID(w, r)
 
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
@@ -216,6 +229,10 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
 	currentUserID := a.getUserSessionID(w, r)
 
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
