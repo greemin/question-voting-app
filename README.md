@@ -2,6 +2,30 @@
 
 A real-time, lightweight application for crowdsourcing and ranking questions during a presentation, Q&A session, or meeting. Built using a Go backend for fast API handling and a React/Vite frontend for a modern, responsive user experience.
 
+## 🚀 Quick Start with Docker
+
+This is the fastest way to get the application up and running.
+
+**Prerequisites:**
+- Docker: [Installation Guide](https://docs.docker.com/get-docker/)
+- Docker Compose: [Installation Guide](https://docs.docker.com/compose/install/)
+
+**Instructions:**
+1.  **Clone the repository:**
+    ```sh
+    git clone <repository-url>
+    cd question-voting-app
+    ```
+2.  **Build and run the application:**
+    ```sh
+    docker compose up --build
+    ```
+    This command will build the Docker images for the frontend and backend services and start all the containers.
+
+3.  **Access the application:**
+    -   The frontend is available at [http://localhost:5173](http://localhost:5173).
+    -   The backend API is available at [http://localhost:8081](http://localhost:8081).
+
 ## 🛠️ Setup and Installation
 Prerequisites
 
@@ -26,9 +50,9 @@ The backend handles session management, voting, and storage.
 
 Start the Go server:
 
-    go run ./cmd/server/main.go
+    go run ./cmd/main.go
 
-The API should start on http://localhost:8080.
+The API should start on http://localhost:8081.
 
 ### 2. Frontend Service Setup (React Client)
 
