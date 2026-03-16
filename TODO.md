@@ -28,9 +28,9 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Update README
 
 -   [ ] **Database Migration to MongoDB**
-    -   Replace the current file-based storage with a MongoDB database to ensure scalability and reliability.
-    -   **Action**: Implement a new `MongoStorer` that satisfies the `Storer` interface.
-    -   **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
+    -   [x] Replace the current file-based storage with a MongoDB database to ensure scalability and reliability.
+    -   [x] **Action**: Implement a new `MongoStorer` that satisfies the `Storer` interface.
+    -   [x] **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
     -   **Action**: Check that mongodb is started in secure mode.
 
 -   [ ] **Implement Real-Time Updates with WebSockets**
