@@ -91,6 +91,10 @@ This document outlines the development plan for the application. Phases are orga
     -   Test the full application flow from end to end.
     -   **Action**: Write tests that cover user flows across both the frontend and backend (e.g., creating a session, submitting a question, and seeing it appear in real-time).
 
+-   [ ] **Add Mongo Integration Tests**
+    -   Write integration tests for the `MongoStorage` implementation.
+    -   **Action**: Use Testcontainers to spin up an ephemeral MongoDB database during testing to ensure queries and connection logic work correctly.
+
 -   [ ] **Set Up CI/CD Pipeline**
     -   Automate testing and deployment.
     -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
