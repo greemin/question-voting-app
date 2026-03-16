@@ -2,57 +2,22 @@
 
 A real-time, lightweight application for crowdsourcing and ranking questions during a presentation, Q&A session, or meeting. Built using a Go backend for fast API handling and a React/Vite frontend for a modern, responsive user experience.
 
-## 🚀 Quick Start with Docker
-
-This is the fastest way to get the application up and running.
-
-**Prerequisites:**
-- Docker: [Installation Guide](https://docs.docker.com/get-docker/)
-- Docker Compose: [Installation Guide](https://docs.docker.com/compose/install/)
-
-**Instructions:**
-1.  **Clone the repository:**
-    ```sh
-    git clone <repository-url>
-    cd question-voting-app
-    ```
-2.  **Build and run the application:**
-    ```sh
-    docker compose up --build
-    ```
-    This command will build the Docker images for the frontend and backend services and start all the containers.
-
-3.  **Access the application:**
-    -   The frontend is available at [http://localhost:5173](http://localhost:5173).
-    -   The backend API is available at [http://localhost:8081](http://localhost:8081).
-
 ## 🛠️ Setup and Installation
 Prerequisites
 
-You must have the following installed on your system:
+You must have **Docker** and **Docker Compose** installed on your system.
 
-- Go: Version 1.22 or higher
+### 1. Running the Application (Local Development)
 
-- Node.js & npm: Version 18 or higher
+This project is fully containerized. To spin up the React frontend, Go backend, and MongoDB database, simply run:
 
+    docker compose up --build
 
-### 1. Backend Service Setup (Go API)
+The following services will be available:
+* **Frontend:** http://localhost:5174
+* **Backend API:** http://localhost:8081
+* **MongoDB:** mongodb://localhost:27017 (using the credentials `devroot` / `devpassword`)
 
-The backend handles session management, voting, and storage.
-
-#### 1. Navigate to the backend directory:
-
-    cd services/backend
-
-#### 2. Download the required Go modules:
-
-    go mod tidy
-
-Start the Go server:
-
-    go run ./cmd/main.go
-
-The API should start on http://localhost:8081.
 
 ### 2. Frontend Service Setup (React Client)
 
@@ -64,11 +29,4 @@ The frontend is a single-page application (SPA) built with React and bundled wit
 #### 2.Install the Node dependencies:
     npm install
 
-#### 3. Start the development server:
-    npm run dev
-
-The application will typically be available at http://localhost:5173 (or similar).
-
-### 3. Running the App 🏁
-
-Open your browser to the address provided by the frontend server (e.g., http://localhost:5173).
+To stop the application, run `docker compose down`. If you want to wipe the local database completely, run `docker compose down -v`.

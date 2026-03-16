@@ -27,11 +27,11 @@ This document outlines the development plan for the application. Phases are orga
         -   [x] For Production: Be explicit and run docker compose -f docker-compose.yml up (avoids the development override).
     -   [x] **Action**: Update README
 
--   [ ] **Database Migration to MongoDB**
+-   [x] **Database Migration to MongoDB**
     -   [x] Replace the current file-based storage with a MongoDB database to ensure scalability and reliability.
     -   [x] **Action**: Implement a new `MongoStorer` that satisfies the `Storer` interface.
     -   [x] **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
-    -   **Action**: Check that mongodb is started in secure mode.
+    -   [x] **Action**: Check that mongodb is started in secure mode.
 
 -   [ ] **Implement Real-Time Updates with WebSockets**
     -   Transition from HTTP polling to WebSockets for instant updates to questions and votes.
@@ -99,3 +99,13 @@ This document outlines the development plan for the application. Phases are orga
     -   Automate testing and deployment.
     -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
     -   **Action**: Extend the workflow to build and push Docker images, and eventually deploy to a hosting provider.
+
+---
+
+### 🔮 **Long-Term Goals & Tech Debt**
+
+-   [ ] **Add Database Indexes**
+    -   **Action**: Define a unique index on fields like `sessionId` during database initialization to prevent full collection scans and improve query performance as the application grows.
+
+-   [ ] **Propagate Contexts to Database Layer**
+    -   **Action**: Update the `Storer` interface and `MongoStorage` implementation to accept a `context.Context` from HTTP handlers instead of hardcoding `context.Background()`. This ensures database queries are automatically cancelled if an HTTP request times out or is aborted by the user.

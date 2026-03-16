@@ -8,7 +8,8 @@ services:
     environment:
       - MONGO_URI=${MONGO_URI}
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     networks:
       - frontend-network
       - backend-network
@@ -36,6 +37,11 @@ services:
       - mongo-data:/data/db
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mongo-data:
