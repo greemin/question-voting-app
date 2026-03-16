@@ -9,9 +9,9 @@ import (
 	"question-voting-app/internal/models"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // Storer defines the interface for session data storage.
@@ -123,7 +123,7 @@ func (ms *MongoStorage) LoadSessionData(sessionID string) (*models.SessionData, 
 
 // SaveSessionData saves a session to MongoDB, using upsert to create or update.
 func (ms *MongoStorage) SaveSessionData(data *models.SessionData) error {
-	opts := options.Update().SetUpsert(true)
+	opts := options.UpdateOne().SetUpsert(true)
 	filter := bson.M{"sessionId": data.SessionID}
 	update := bson.M{"$set": data}
 
