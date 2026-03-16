@@ -78,6 +78,11 @@ func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := parts[3]
 
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
+
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -97,6 +102,11 @@ func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.Split(r.URL.Path, "/")[3]
 	a.getUserSessionID(w, r) // Ensure user has a session cookie
+
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
 
 	var submission models.QuestionSubmission
 	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil || submission.Text == "" {
@@ -145,6 +155,15 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	questionID := parts[5]
 	userID := a.getUserSessionID(w, r)
 
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
+	if _, err := uuid.Parse(questionID); err != nil {
+		http.Error(w, "Invalid question ID format", http.StatusBadRequest)
+		return
+	}
+
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -188,6 +207,11 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.Split(r.URL.Path, "/")[3]
 	userID := a.getUserSessionID(w, r)
 
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
+
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
@@ -217,6 +241,11 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := parts[3]
 	currentUserID := a.getUserSessionID(w, r)
+
+	if _, err := uuid.Parse(sessionID); err != nil {
+		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
+		return
+	}
 
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {

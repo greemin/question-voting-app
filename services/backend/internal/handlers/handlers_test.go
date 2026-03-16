@@ -29,8 +29,8 @@ func createMockSession(id string, adminID string, isActive bool) *models.Session
 		AdminUserID: adminID,
 		IsActive:    isActive,
 		Questions: []models.Question{
-			{ID: "q1", Text: "Question One (10 votes)", Votes: 10, Voters: []string{"u1", "u2"}},
-			{ID: "q2", Text: "Question Two (5 votes)", Votes: 5, Voters: []string{"u3"}},
+			{ID: "00000000-0000-0000-0000-000000000011", Text: "Question One (10 votes)", Votes: 10, Voters: []string{"u1", "u2"}},
+			{ID: "00000000-0000-0000-0000-000000000012", Text: "Question Two (5 votes)", Votes: 5, Voters: []string{"u3"}},
 		},
 	}
 }
@@ -66,7 +66,7 @@ func TestCreateSessionHandler(t *testing.T) {
 
 func TestGetQuestionsHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "test-get-q"
+	sessionID := "00000000-0000-0000-0000-000000000001"
 	adminID := "admin-1"
 
 	// Setup: Save a mock session with sorted questions (10 votes, then 5 votes)
@@ -100,7 +100,7 @@ func TestGetQuestionsHandler(t *testing.T) {
 	// Test Case 2: Session Not Found
 	t.Run("NotFound", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodGet, "/api/session/non-existent/questions", nil)
+		r := httptest.NewRequest(http.MethodGet, "/api/session/00000000-0000-0000-0000-000000000000/questions", nil)
 
 		api.GetQuestionsHandler(w, r)
 
@@ -108,11 +108,23 @@ func TestGetQuestionsHandler(t *testing.T) {
 			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
 		}
 	})
+
+	// Test Case 3: Invalid Session ID
+	t.Run("InvalidSessionID", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/session/invalid-uuid/questions", nil)
+
+		api.GetQuestionsHandler(w, r)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+	})
 }
 
 func TestSubmitQuestionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "test-submit-q"
+	sessionID := "00000000-0000-0000-0000-000000000002"
 	adminID := "admin-2"
 	storer.SaveSessionData(createMockSession(sessionID, adminID, true)) // Active session
 
@@ -125,7 +137,8 @@ func TestSubmitQuestionHandler(t *testing.T) {
 	}{
 		{"Success", &models.QuestionSubmission{Text: "New Test Question"}, sessionID, true, http.StatusCreated},
 		{"EmptyBody", &models.QuestionSubmission{Text: ""}, sessionID, true, http.StatusBadRequest},
-		{"SessionNotFound", &models.QuestionSubmission{Text: "Valid Q"}, "non-existent", true, http.StatusNotFound},
+		{"SessionNotFound", &models.QuestionSubmission{Text: "Valid Q"}, "00000000-0000-0000-0000-000000000000", true, http.StatusNotFound},
+		{"InvalidSessionID", &models.QuestionSubmission{Text: "Valid Q"}, "invalid-uuid", true, http.StatusBadRequest},
 		{"SessionClosed", &models.QuestionSubmission{Text: "Closed Q"}, sessionID, false, http.StatusForbidden},
 	}
 
@@ -158,14 +171,14 @@ func TestSubmitQuestionHandler(t *testing.T) {
 
 func TestVoteQuestionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "test-vote-q"
+	sessionID := "00000000-0000-0000-0000-000000000003"
 	adminID := "admin-3"
 
 	// Setup: Save a mock session (active) where q1 has 10 votes, 2 voters
 	storer.SaveSessionData(createMockSession(sessionID, adminID, true))
 
-	validPath := fmt.Sprintf("/api/session/%s/questions/q1/vote", sessionID)
-	invalidPath := fmt.Sprintf("/api/session/%s/questions/q99/vote", sessionID)
+	validPath := fmt.Sprintf("/api/session/%s/questions/00000000-0000-0000-0000-000000000011/vote", sessionID)
+	invalidPath := fmt.Sprintf("/api/session/%s/questions/00000000-0000-0000-0000-000000000099/vote", sessionID)
 
 	tests := []struct {
 		name           string
@@ -178,7 +191,9 @@ func TestVoteQuestionHandler(t *testing.T) {
 		{"AlreadyVoted", validPath, "u1", true, http.StatusForbidden}, // u1 is a voter on q1 from setup
 		{"QuestionNotFound", invalidPath, "new-voter-5", true, http.StatusNotFound},
 		{"SessionClosed", validPath, "new-voter-6", false, http.StatusForbidden},
-		{"SessionNotFound", "/api/session/non-existent/questions/q1/vote", "new-voter-7", true, http.StatusNotFound},
+		{"SessionNotFound", "/api/session/00000000-0000-0000-0000-000000000000/questions/00000000-0000-0000-0000-000000000011/vote", "new-voter-7", true, http.StatusNotFound},
+		{"InvalidSessionID", "/api/session/invalid-uuid/questions/00000000-0000-0000-0000-000000000011/vote", "new-voter-8", true, http.StatusBadRequest},
+		{"InvalidQuestionID", fmt.Sprintf("/api/session/%s/questions/invalid-uuid/vote", sessionID), "new-voter-9", true, http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
@@ -206,7 +221,7 @@ func TestVoteQuestionHandler(t *testing.T) {
 
 func TestEndSessionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "test-end-session"
+	sessionID := "00000000-0000-0000-0000-000000000004"
 	adminID := "admin-4"
 	otherUser := "user-4"
 
@@ -215,13 +230,15 @@ func TestEndSessionHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
+		testSessionID  string
 		userID         string
 		sessionExists  bool
 		expectedStatus int
 	}{
-		{"Success_Admin", adminID, true, http.StatusNoContent},
-		{"Unauthorized_User", otherUser, true, http.StatusForbidden},
-		{"SessionNotFound", adminID, false, http.StatusNoContent}, // Handler returns NoContent if file isn't found
+		{"Success_Admin", sessionID, adminID, true, http.StatusNoContent},
+		{"Unauthorized_User", sessionID, otherUser, true, http.StatusForbidden},
+		{"SessionNotFound", sessionID, adminID, false, http.StatusNoContent}, // Handler returns NoContent if file isn't found
+		{"InvalidSessionID", "invalid-uuid", adminID, true, http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
@@ -235,7 +252,7 @@ func TestEndSessionHandler(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
+			r := httptest.NewRequest(http.MethodDelete, "/api/session/"+tt.testSessionID, nil)
 			r.AddCookie(&http.Cookie{Name: "userSessionId", Value: tt.userID})
 
 			api.EndSessionHandler(w, r)
@@ -257,7 +274,7 @@ func TestEndSessionHandler(t *testing.T) {
 
 func TestCheckAdminHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "test-check-admin"
+	sessionID := "00000000-0000-0000-0000-000000000005"
 	adminID := "admin-5"
 	otherUser := "user-5"
 
@@ -266,13 +283,16 @@ func TestCheckAdminHandler(t *testing.T) {
 
 	tests := []struct {
 		name                string
+		testSessionID       string
 		userID              string
 		sessionExists       bool
+		expectedStatus      int
 		expectedAdminStatus bool
 	}{
-		{"IsAdmin", adminID, true, true},
-		{"IsNotAdmin", otherUser, true, false},
-		{"SessionNotFound", adminID, false, false},
+		{"IsAdmin", sessionID, adminID, true, http.StatusOK, true},
+		{"IsNotAdmin", sessionID, otherUser, true, http.StatusOK, false},
+		{"SessionNotFound", sessionID, adminID, false, http.StatusOK, false},
+		{"InvalidSessionID", "invalid-uuid", adminID, true, http.StatusBadRequest, false},
 	}
 
 	for _, tt := range tests {
@@ -285,22 +305,24 @@ func TestCheckAdminHandler(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
+			r := httptest.NewRequest(http.MethodGet, "/api/session/"+tt.testSessionID+"/check-admin", nil)
 			r.AddCookie(&http.Cookie{Name: "userSessionId", Value: tt.userID})
 
 			api.CheckAdminHandler(w, r)
 
-			if w.Code != http.StatusOK {
-				t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
+			if w.Code != tt.expectedStatus {
+				t.Fatalf("Expected status %d, got %d. Body: %s", tt.expectedStatus, w.Code, w.Body.String())
 			}
 
-			var response map[string]bool
-			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-				t.Fatalf("Failed to unmarshal response: %v", err)
-			}
+			if tt.expectedStatus == http.StatusOK {
+				var response map[string]bool
+				if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+					t.Fatalf("Failed to unmarshal response: %v", err)
+				}
 
-			if response["isAdmin"] != tt.expectedAdminStatus {
-				t.Errorf("Expected isAdmin=%t, got isAdmin=%t", tt.expectedAdminStatus, response["isAdmin"])
+				if response["isAdmin"] != tt.expectedAdminStatus {
+					t.Errorf("Expected isAdmin=%t, got isAdmin=%t", tt.expectedAdminStatus, response["isAdmin"])
+				}
 			}
 		})
 	}
