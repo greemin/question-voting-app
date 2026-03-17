@@ -56,6 +56,9 @@ func main() {
 	fmt.Println("Connected to MongoDB!")
 
 	storer := storage.NewMongoStorage(client, "question-voting-app", "sessions")
+	if err := storer.ConfigureIndexes(); err != nil {
+		log.Fatalf("Failed to configure MongoDB indexes: %v", err)
+	}
 	api := handlers.New(storer)
 
 	// --- API Routes Setup ---

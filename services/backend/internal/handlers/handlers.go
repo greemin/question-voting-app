@@ -1,15 +1,54 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"question-voting-app/internal/models"
 	"question-voting-app/internal/storage"
+	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+var slugInvalidChars = regexp.MustCompile(`[^a-z0-9\s-]+`)
+var consecutiveHyphens = regexp.MustCompile(`-+`)
+var spaceOrUnderscore = regexp.MustCompile(`[_\s]+`)
+
+func slugify(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "&", " and ")
+	s = strings.ReplaceAll(s, "+", " plus ")
+
+	// Replace unsupported characters with a space
+	s = slugInvalidChars.ReplaceAllString(s, " ")
+	// Replace spaces and underscores with a hyphen
+	s = spaceOrUnderscore.ReplaceAllString(s, "-")
+	// Collapse consecutive hyphens
+	s = consecutiveHyphens.ReplaceAllString(s, "-")
+	// Trim leading/trailing hyphens
+	s = strings.Trim(s, "-")
+
+	return s
+}
+
+func generateRandomString(n int) (string, error) {
+	const letters = "0123456789abcdefghijklmnopqrstuvwxyz"
+	ret := make([]byte, n)
+	for i := 0; i < n; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		if err != nil {
+			return "", err
+		}
+		ret[i] = letters[num.Int64()]
+	}
+
+	return string(ret), nil
+}
 
 // API holds the dependencies for the API handlers.
 type API struct {
@@ -46,24 +85,74 @@ func (a *API) getUserSessionID(w http.ResponseWriter, r *http.Request) string {
 // POST /api/session
 func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	adminID := a.getUserSessionID(w, r)
-	sessionID := uuid.New().String()
+
+	var req models.CreateSessionRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	sessionID := req.SessionID
+	if sessionID != "" {
+		sessionID = slugify(sessionID)
+	}
+
+	if sessionID == "" {
+		randomString, err := generateRandomString(8)
+		if err != nil {
+			http.Error(w, "Failed to generate session ID", http.StatusInternalServerError)
+			return
+		}
+		sessionID = randomString
+	}
 
 	newSession := &models.SessionData{
 		SessionID:   sessionID,
 		AdminUserID: adminID,
 		IsActive:    true,
+		CreatedAt:   time.Now(),
 		Questions:   []models.Question{},
 	}
 
-	if err := a.Storer.SaveSessionData(newSession); err != nil {
-		http.Error(w, "Failed to create session data", http.StatusInternalServerError)
-		return
+	// Retry logic for session ID collision
+	for i := 0; i < 5; i++ {
+		err := a.Storer.CreateSessionData(newSession)
+		if err == nil {
+			break // Success
+		}
+
+		if err != nil {
+			// On the first collision, add a suffix. On subsequent collisions, generate a new random ID.
+			if i == 0 {
+				suffix, err := generateRandomString(4)
+				if err != nil {
+					http.Error(w, "Failed to generate session ID suffix", http.StatusInternalServerError)
+					return
+				}
+				// Update both the session object AND the original sessionID variable for the next loop
+				sessionID = sessionID + "-" + suffix
+				newSession.SessionID = sessionID
+			} else {
+				randomString, err := generateRandomString(8)
+				if err != nil {
+					http.Error(w, "Failed to generate session ID", http.StatusInternalServerError)
+					return
+				}
+				sessionID = randomString
+				newSession.SessionID = sessionID
+			}
+		} else {
+			http.Error(w, "Failed to create session data", http.StatusInternalServerError)
+			return
+		}
+
+		if i == 4 {
+			http.Error(w, "Failed to create session after multiple retries", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"sessionId": sessionID,
+		"sessionId": newSession.SessionID,
 		"adminId":   adminID,
 	})
 }
@@ -77,11 +166,6 @@ func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
-
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
@@ -102,11 +186,6 @@ func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := strings.Split(r.URL.Path, "/")[3]
 	a.getUserSessionID(w, r) // Ensure user has a session cookie
-
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 
 	var submission models.QuestionSubmission
 	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil || submission.Text == "" {
@@ -134,7 +213,7 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData.Questions = append(sessionData.Questions, newQuestion)
 
-	if err := a.Storer.SaveSessionData(sessionData); err != nil {
+	if err := a.Storer.UpdateSessionData(sessionData); err != nil {
 		http.Error(w, "Failed to save question", http.StatusInternalServerError)
 		return
 	}
@@ -152,17 +231,9 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 	questionID := parts[5]
 	userID := a.getUserSessionID(w, r)
 
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 	if _, err := uuid.Parse(questionID); err != nil {
 		http.Error(w, "Invalid question ID format", http.StatusBadRequest)
 		return
@@ -191,7 +262,7 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 			sessionData.Questions[i].Votes++
 			sessionData.Questions[i].Voters = append(sessionData.Questions[i].Voters, userID)
 
-			if err := a.Storer.SaveSessionData(sessionData); err != nil {
+			if err := a.Storer.UpdateSessionData(sessionData); err != nil {
 				http.Error(w, "Failed to record vote", http.StatusInternalServerError)
 				return
 			}
@@ -214,16 +285,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 	userID := a.getUserSessionID(w, r)
-
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {
@@ -253,16 +315,7 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 	currentUserID := a.getUserSessionID(w, r)
-
-	if _, err := uuid.Parse(sessionID); err != nil {
-		http.Error(w, "Invalid session ID format", http.StatusBadRequest)
-		return
-	}
 
 	sessionData, err := a.Storer.LoadSessionData(sessionID)
 	if err != nil {

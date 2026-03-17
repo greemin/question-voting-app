@@ -18,9 +18,14 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-export const createSession = async (): Promise<{ sessionId: string; adminId: string | null }> => {
+export const createSession = async (sessionId?: string): Promise<{ sessionId: string; adminId: string | null }> => {
   const response = await fetch(API_BASE, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ sessionId }),
+    credentials: 'include',
   });
   const data = await handleResponse(response);
   // Admin ID is now guaranteed to be in the cookie

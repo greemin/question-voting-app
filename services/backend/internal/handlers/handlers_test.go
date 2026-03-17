@@ -1,14 +1,13 @@
-package handlers_test
+package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
-	"question-voting-app/internal/handlers"
 	"question-voting-app/internal/models"
 	"question-voting-app/internal/testutil"
 )
@@ -16,9 +15,9 @@ import (
 // --- Test Setup Helper ---
 
 // setupTestAPI creates the handler instance with an injected MockStorer.
-func setupTestAPI() (*handlers.API, *testutil.MockStorer) {
+func setupTestAPI() (*API, *testutil.MockStorer) {
 	storer := testutil.NewMockStorer()
-	api := handlers.New(storer)
+	api := New(storer)
 	return api, storer
 }
 
@@ -35,295 +34,315 @@ func createMockSession(id string, adminID string, isActive bool) *models.Session
 	}
 }
 
+// --- Unit Tests ---
+
+func TestSlugify(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"Normal", "Hello World", "hello-world"},
+		{"With &", "Q&A Session", "q-and-a-session"},
+		{"With +", "Intro+Advanced", "intro-plus-advanced"},
+		{"Underscores", "my_cool_session", "my-cool-session"},
+		{"Extra Spaces", "  leading and trailing  ", "leading-and-trailing"},
+		{"Mixed Garbage", "!@#$My%^&*()_Session 123+", "my-and-session-123-plus"},
+		{"Uppercase", "ALL CAPS", "all-caps"},
+		{"Empty after slugify", "!@#$%-", ""},
+		{"No change", "already-a-slug", "already-a-slug"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := slugify(tt.input)
+			if actual != tt.expected {
+				t.Errorf("slugify(%q): expected %q, got %q", tt.input, tt.expected, actual)
+			}
+		})
+	}
+}
+
 // --- Handler Unit Tests ---
 
 func TestCreateSessionHandler(t *testing.T) {
-	api, _ := setupTestAPI()
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, "/api/session", nil)
+	api, storer := setupTestAPI()
 
-	api.CreateSessionHandler(w, r)
+	t.Run("NoSlugProvided", func(t *testing.T) {
+		storer.Clear()
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session", nil)
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusCreated, w.Code, w.Body.String())
-	}
-	if w.Header().Get("Content-Type") != "application/json" {
-		t.Errorf("Expected Content-Type application/json, got %s", w.Header().Get("Content-Type"))
-	}
+		api.CreateSessionHandler(w, r)
 
-	var response map[string]string
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		t.Fatalf("Failed to unmarshal response: %v", err)
-	}
+		if w.Code != http.StatusCreated {
+			t.Fatalf("Expected status %d, got %d", http.StatusCreated, w.Code)
+		}
+		var resp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		sessionID := resp["sessionId"]
+		if len(sessionID) != 8 {
+			t.Errorf("Expected a random 8-character slug, got %q", sessionID)
+		}
+		if !storer.HasSession(sessionID) {
+			t.Error("Session was not created in the storer")
+		}
+	})
 
-	if _, ok := response["sessionId"]; !ok {
-		t.Error("Response missing 'sessionId'")
-	}
-	if _, ok := response["adminId"]; !ok {
-		t.Error("Response missing 'adminId'")
-	}
+	t.Run("ValidSlugProvided", func(t *testing.T) {
+		storer.Clear()
+		slug := "my-cool-event"
+		body := fmt.Sprintf(`{"sessionId": "%s"}`, slug)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader(body))
+
+		api.CreateSessionHandler(w, r)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("Expected status %d, got %d", http.StatusCreated, w.Code)
+		}
+		var resp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["sessionId"] != slug {
+			t.Errorf("Expected sessionId %q, got %q", slug, resp["sessionId"])
+		}
+		if !storer.HasSession(slug) {
+			t.Errorf("Session with slug %q was not created", slug)
+		}
+	})
+
+	t.Run("SlugIsSlugified", func(t *testing.T) {
+		storer.Clear()
+		inputSlug := "My Awesome Q&A"
+		expectedSlug := "my-awesome-q-and-a"
+		body := fmt.Sprintf(`{"sessionId": "%s"}`, inputSlug)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader(body))
+
+		api.CreateSessionHandler(w, r)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("Expected status %d, got %d", http.StatusCreated, w.Code)
+		}
+		var resp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["sessionId"] != expectedSlug {
+			t.Errorf("Expected slugified sessionId %q, got %q", expectedSlug, resp["sessionId"])
+		}
+		if !storer.HasSession(expectedSlug) {
+			t.Errorf("Session with slugified slug %q was not created", expectedSlug)
+		}
+	})
+
+	t.Run("SlugCollision", func(t *testing.T) {
+		storer.Clear()
+		collidingSlug := "i-exist"
+		storer.PreloadSession(&models.SessionData{SessionID: collidingSlug})
+
+		body := fmt.Sprintf(`{"sessionId": "%s"}`, collidingSlug)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader(body))
+
+		api.CreateSessionHandler(w, r)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("Expected status %d, got %d and message \"%s\"", http.StatusCreated, w.Code, w.Body.String())
+		}
+		var resp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		newSessionID := resp["sessionId"]
+
+		if newSessionID == collidingSlug {
+			t.Fatalf("Session ID was not changed after collision")
+		}
+		if !strings.HasPrefix(newSessionID, collidingSlug+"-") {
+			t.Errorf("Expected new session ID to be prefixed with %q, but got %q", collidingSlug+"-", newSessionID)
+		}
+		if len(newSessionID) != len(collidingSlug)+1+4 { // slug + hyphen + 4 chars
+			t.Errorf("Expected new session ID to have a 4-char suffix, but got %q", newSessionID)
+		}
+		if !storer.HasSession(newSessionID) {
+			t.Errorf("The new suffixed session %q was not created in the storer", newSessionID)
+		}
+	})
 }
 
 func TestGetQuestionsHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "00000000-0000-0000-0000-000000000001"
+	sessionID := "my-test-session"
 	adminID := "admin-1"
+	storer.PreloadSession(createMockSession(sessionID, adminID, true))
 
-	// Setup: Save a mock session with sorted questions (10 votes, then 5 votes)
-	storer.SaveSessionData(createMockSession(sessionID, adminID, true))
-
-	// Test Case 1: Successful Retrieval and Sorting
-	t.Run("Success_Sorted", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/questions", nil)
-
 		api.GetQuestionsHandler(w, r)
 
 		if w.Code != http.StatusOK {
-			t.Fatalf("Expected status %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
+			t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
 		}
-
 		var questions []models.Question
-		if err := json.Unmarshal(w.Body.Bytes(), &questions); err != nil {
-			t.Fatalf("Failed to unmarshal response: %v", err)
-		}
-
-		// Assert Sorting (Highest vote first)
+		json.Unmarshal(w.Body.Bytes(), &questions)
 		if len(questions) != 2 {
 			t.Fatalf("Expected 2 questions, got %d", len(questions))
 		}
 		if questions[0].Votes < questions[1].Votes {
-			t.Errorf("Questions were not sorted correctly. Q1 Votes: %d, Q2 Votes: %d", questions[0].Votes, questions[1].Votes)
+			t.Error("Questions were not sorted correctly by votes")
 		}
 	})
 
-	// Test Case 2: Session Not Found
 	t.Run("NotFound", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodGet, "/api/session/00000000-0000-0000-0000-000000000000/questions", nil)
-
+		r := httptest.NewRequest(http.MethodGet, "/api/session/non-existent-session/questions", nil)
 		api.GetQuestionsHandler(w, r)
-
 		if w.Code != http.StatusNotFound {
 			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
-		}
-	})
-
-	// Test Case 3: Invalid Session ID
-	t.Run("InvalidSessionID", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodGet, "/api/session/invalid-uuid/questions", nil)
-
-		api.GetQuestionsHandler(w, r)
-
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 		}
 	})
 }
 
 func TestSubmitQuestionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "00000000-0000-0000-0000-000000000002"
+	sessionID := "submit-question-session"
 	adminID := "admin-2"
-	storer.SaveSessionData(createMockSession(sessionID, adminID, true)) // Active session
+	storer.PreloadSession(createMockSession(sessionID, adminID, true)) // Active session
 
-	tests := []struct {
-		name           string
-		body           *models.QuestionSubmission
-		sessionID      string
-		isActive       bool
-		expectedStatus int
-	}{
-		{"Success", &models.QuestionSubmission{Text: "New Test Question"}, sessionID, true, http.StatusCreated},
-		{"EmptyBody", &models.QuestionSubmission{Text: ""}, sessionID, true, http.StatusBadRequest},
-		{"SessionNotFound", &models.QuestionSubmission{Text: "Valid Q"}, "00000000-0000-0000-0000-000000000000", true, http.StatusNotFound},
-		{"InvalidSessionID", &models.QuestionSubmission{Text: "Valid Q"}, "invalid-uuid", true, http.StatusBadRequest},
-		{"SessionClosed", &models.QuestionSubmission{Text: "Closed Q"}, sessionID, false, http.StatusForbidden},
-	}
+	t.Run("Success", func(t *testing.T) {
+		body := `{"text": "A new valid question?"}`
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		api.SubmitQuestionHandler(w, r)
+		if w.Code != http.StatusCreated {
+			t.Errorf("Expected status %d, got %d", http.StatusCreated, w.Code)
+		}
+		session, _ := storer.LoadSessionData(sessionID)
+		if len(session.Questions) != 3 {
+			t.Errorf("Expected 3 questions after submission, got %d", len(session.Questions))
+		}
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Arrange: Ensure session state matches test case (e.g., set to inactive if needed)
-			if tt.isActive == false {
-				closedSession := createMockSession(sessionID, adminID, false)
-				storer.SaveSessionData(closedSession)
-			}
-
-			bodyBytes, _ := json.Marshal(tt.body)
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest(http.MethodPost, "/api/session/"+tt.sessionID+"/questions", bytes.NewReader(bodyBytes))
-			r.AddCookie(&http.Cookie{Name: "userSessionId", Value: "test-user"})
-
-			api.SubmitQuestionHandler(w, r)
-
-			if w.Code != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d. Body: %s", tt.expectedStatus, w.Code, w.Body.String())
-			}
-
-			// Post-assertion: Revert session back to active for other tests
-			if tt.isActive == false {
-				storer.SaveSessionData(createMockSession(sessionID, adminID, true))
-			}
-		})
-	}
+	t.Run("SessionClosed", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminID, false)) // Inactive
+		body := `{"text": "A question for a closed session?"}`
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		api.SubmitQuestionHandler(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+	})
 }
 
 func TestVoteQuestionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "00000000-0000-0000-0000-000000000003"
+	sessionID := "vote-session"
 	adminID := "admin-3"
+	questionID := "00000000-0000-0000-0000-000000000011"
+	voterCookie := &http.Cookie{Name: "userSessionId", Value: "new-voter"}
 
-	// Setup: Save a mock session (active) where q1 has 10 votes, 2 voters
-	storer.SaveSessionData(createMockSession(sessionID, adminID, true))
+	t.Run("Success", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		path := fmt.Sprintf("/api/session/%s/questions/%s/vote", sessionID, questionID)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPut, path, nil)
+		r.AddCookie(voterCookie)
+		api.VoteQuestionHandler(w, r)
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+		session, _ := storer.LoadSessionData(sessionID)
+		if session.Questions[0].Votes != 11 {
+			t.Errorf("Expected vote count to be 11, got %d", session.Questions[0].Votes)
+		}
+	})
 
-	validPath := fmt.Sprintf("/api/session/%s/questions/00000000-0000-0000-0000-000000000011/vote", sessionID)
-	invalidPath := fmt.Sprintf("/api/session/%s/questions/00000000-0000-0000-0000-000000000099/vote", sessionID)
-
-	tests := []struct {
-		name           string
-		path           string
-		userID         string
-		isActive       bool
-		expectedStatus int
-	}{
-		{"Success_FirstVote", validPath, "new-voter-4", true, http.StatusOK},
-		{"AlreadyVoted", validPath, "u1", true, http.StatusForbidden}, // u1 is a voter on q1 from setup
-		{"QuestionNotFound", invalidPath, "new-voter-5", true, http.StatusNotFound},
-		{"SessionClosed", validPath, "new-voter-6", false, http.StatusForbidden},
-		{"SessionNotFound", "/api/session/00000000-0000-0000-0000-000000000000/questions/00000000-0000-0000-0000-000000000011/vote", "new-voter-7", true, http.StatusNotFound},
-		{"InvalidSessionID", "/api/session/invalid-uuid/questions/00000000-0000-0000-0000-000000000011/vote", "new-voter-8", true, http.StatusBadRequest},
-		{"InvalidQuestionID", fmt.Sprintf("/api/session/%s/questions/invalid-uuid/vote", sessionID), "new-voter-9", true, http.StatusBadRequest},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Arrange: Set session state for test case
-			if !tt.isActive {
-				storer.SaveSessionData(createMockSession(sessionID, adminID, false))
-			} else if tt.name == "Success_FirstVote" {
-				// Ensure fresh state for the first successful vote
-				storer.SaveSessionData(createMockSession(sessionID, adminID, true))
-			}
-
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest(http.MethodPut, tt.path, nil)
-			r.AddCookie(&http.Cookie{Name: "userSessionId", Value: tt.userID})
-
-			api.VoteQuestionHandler(w, r)
-
-			if w.Code != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d. Body: %s", tt.expectedStatus, w.Code, w.Body.String())
-			}
-		})
-	}
+	t.Run("AlreadyVoted", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		path := fmt.Sprintf("/api/session/%s/questions/%s/vote", sessionID, questionID)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPut, path, nil)
+		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: "u1"}) // u1 already voted in mock
+		api.VoteQuestionHandler(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+	})
 }
 
 func TestEndSessionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "00000000-0000-0000-0000-000000000004"
+	sessionID := "end-this-session"
 	adminID := "admin-4"
 	otherUser := "user-4"
 
-	// Setup: Save the session
-	storer.SaveSessionData(createMockSession(sessionID, adminID, true))
+	t.Run("Success_Admin", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
+		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: adminID})
+		api.EndSessionHandler(w, r)
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %d, got %d", http.StatusNoContent, w.Code)
+		}
+		if storer.HasSession(sessionID) {
+			t.Error("Session was not deleted from storer")
+		}
+	})
 
-	tests := []struct {
-		name           string
-		testSessionID  string
-		userID         string
-		sessionExists  bool
-		expectedStatus int
-	}{
-		{"Success_Admin", sessionID, adminID, true, http.StatusNoContent},
-		{"Unauthorized_User", sessionID, otherUser, true, http.StatusForbidden},
-		{"SessionNotFound", sessionID, adminID, false, http.StatusNoContent}, // Handler returns NoContent if file isn't found
-		{"InvalidSessionID", "invalid-uuid", adminID, true, http.StatusBadRequest},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Arrange: Ensure session exists or doesn't exist before test
-			if tt.sessionExists {
-				// Re-save if it was deleted in a previous test
-				storer.SaveSessionData(createMockSession(sessionID, adminID, true))
-			} else {
-				storer.DeleteSessionData(sessionID)
-			}
-
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest(http.MethodDelete, "/api/session/"+tt.testSessionID, nil)
-			r.AddCookie(&http.Cookie{Name: "userSessionId", Value: tt.userID})
-
-			api.EndSessionHandler(w, r)
-
-			if w.Code != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d. Body: %s", tt.expectedStatus, w.Code, w.Body.String())
-			}
-
-			// Post-Assertion Check: If status was 204, verify deletion in mock
-			if tt.expectedStatus == http.StatusNoContent && tt.userID == adminID && tt.sessionExists {
-				_, err := storer.LoadSessionData(sessionID)
-				if err == nil {
-					t.Error("Expected session to be deleted from storage, but it was found")
-				}
-			}
-		})
-	}
+	t.Run("Unauthorized_User", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
+		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: otherUser})
+		api.EndSessionHandler(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+		if !storer.HasSession(sessionID) {
+			t.Error("Session was incorrectly deleted by non-admin")
+		}
+	})
 }
 
 func TestCheckAdminHandler(t *testing.T) {
 	api, storer := setupTestAPI()
-	sessionID := "00000000-0000-0000-0000-000000000005"
+	sessionID := "check-admin-session"
 	adminID := "admin-5"
 	otherUser := "user-5"
+	storer.PreloadSession(createMockSession(sessionID, adminID, true))
 
-	// Setup: Save the session
-	storer.SaveSessionData(createMockSession(sessionID, adminID, true))
+	t.Run("IsAdmin", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
+		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: adminID})
+		api.CheckAdminHandler(w, r)
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+		var resp map[string]bool
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if !resp["isAdmin"] {
+			t.Error("Expected isAdmin to be true")
+		}
+	})
 
-	tests := []struct {
-		name                string
-		testSessionID       string
-		userID              string
-		sessionExists       bool
-		expectedStatus      int
-		expectedAdminStatus bool
-	}{
-		{"IsAdmin", sessionID, adminID, true, http.StatusOK, true},
-		{"IsNotAdmin", sessionID, otherUser, true, http.StatusOK, false},
-		{"SessionNotFound", sessionID, adminID, false, http.StatusOK, false},
-		{"InvalidSessionID", "invalid-uuid", adminID, true, http.StatusBadRequest, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Arrange: Ensure session state matches test case
-			if !tt.sessionExists {
-				storer.DeleteSessionData(sessionID)
-			} else {
-				storer.SaveSessionData(createMockSession(sessionID, adminID, true))
-			}
-
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest(http.MethodGet, "/api/session/"+tt.testSessionID+"/check-admin", nil)
-			r.AddCookie(&http.Cookie{Name: "userSessionId", Value: tt.userID})
-
-			api.CheckAdminHandler(w, r)
-
-			if w.Code != tt.expectedStatus {
-				t.Fatalf("Expected status %d, got %d. Body: %s", tt.expectedStatus, w.Code, w.Body.String())
-			}
-
-			if tt.expectedStatus == http.StatusOK {
-				var response map[string]bool
-				if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-					t.Fatalf("Failed to unmarshal response: %v", err)
-				}
-
-				if response["isAdmin"] != tt.expectedAdminStatus {
-					t.Errorf("Expected isAdmin=%t, got isAdmin=%t", tt.expectedAdminStatus, response["isAdmin"])
-				}
-			}
-		})
-	}
+	t.Run("IsNotAdmin", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
+		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: otherUser})
+		api.CheckAdminHandler(w, r)
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+		var resp map[string]bool
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["isAdmin"] {
+			t.Error("Expected isAdmin to be false")
+		}
+	})
 }

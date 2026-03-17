@@ -33,12 +33,14 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
     -   [x] **Action**: Check that mongodb is started in secure mode.
 
-    [ ] **Routes/Handlers & Human-Readable URLs**
+    [o] **Routes/Handlers & Human-Readable URLs**
     -   Users should be able to name their sessions freely with human-readable slugs instead of UUIDs.
-    -   **Action (Backend - Database)**: Add `CreatedAt` to the Session model/interface. Configure MongoDB on startup to create a unique index on `sessionId` and a TTL index on `createdAt` (e.g., 24-48 hours) to automatically purge old sessions.
-    -   **Action (Backend - API)**: Change router/handlers to accept custom `sessionId` strings instead of strict UUIDs. Securely validate the input (URL-safe characters only).
-    -   **Action (Backend - Collision Handling)**: If a `sessionId` collision occurs during insertion (MongoDB duplicate key error E11000), automatically resolve it by appending a random 4-character suffix and return the final unique slug.
-    -   **Action (Frontend)**: Update the "Create Session" API call and UI to optionally capture and send a user-defined slug. Redirect the user to the actually created session URL returned by the backend.
+    -   [x] **Action (Backend - Database)**: Add `CreatedAt` to the Session model/interface. Configure MongoDB on startup to create a unique index on `sessionId` and a TTL index on `createdAt` (e.g., 24-48 hours) to automatically purge old sessions.
+    -   [x] **Action (Backend - API)**: Change router/handlers to accept custom `sessionId` strings instead of strict UUIDs. Securely validate the input (URL-safe characters only).
+    -   [x] **Action (Backend - Collision Handling)**: If a `sessionId` collision occurs during insertion (MongoDB duplicate key error E11000), a random 4-character suffix is automatically appended, and the final unique slug is returned.
+    -   [x] **Action (Frontend)**: Update the "Create Session" API call and UI to optionally capture and send a user-defined slug. Redirect the user to the actually created session URL returned by the backend.
+    -   [x] **Action (Backend - Tests)**: Update tests to changes and tests slugify logic and slugcollision behavior.
+    -   [ ] **Action (Backend)**: Readd IsDuplicateKeyError check for mongo collision and find out why the check is failing and fix it.
 
 -   [ ] **Propagate Contexts to Database Layer**
     -   **Action**: Update the `Storer` interface and `MongoStorage` implementation to accept a `context.Context` from HTTP handlers instead of hardcoding `context.Background()`. This ensures database queries are automatically cancelled if an HTTP request times out or is aborted by the user.

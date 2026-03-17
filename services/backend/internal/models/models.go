@@ -1,10 +1,13 @@
 package models
 
+import "time"
+
 // SessionData represents the structure of the data stored in session${sessionId}.json
 type SessionData struct {
 	SessionID   string     `json:"sessionId" bson:"sessionId"`
 	AdminUserID string     `json:"adminUserId" bson:"adminUserId"`
 	IsActive    bool       `json:"isActive" bson:"isActive"`
+	CreatedAt   time.Time  `json:"createdAt" bson:"createdAt"`
 	Questions   []Question `json:"questions" bson:"questions"`
 }
 
@@ -19,4 +22,9 @@ type Question struct {
 // QuestionSubmission is used for the POST request body
 type QuestionSubmission struct {
 	Text string `json:"text"`
+}
+
+// CreateSessionRequest is used for the POST /api/session request body
+type CreateSessionRequest struct {
+	SessionID string `json:"sessionId"`
 }
