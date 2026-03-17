@@ -33,6 +33,11 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
     -   [x] **Action**: Check that mongodb is started in secure mode.
 
+    [ ] **Routes/Handlers**
+    -   Routes/handlers currently only accept a uuid as session id, but user
+    should be able to name the session freely.
+    -   **Action**: Change handlers to accept not only uuids, but still securely validate the user input. Session interface and mongoDb code will need to be updated.
+
 -   [ ] **Implement Real-Time Updates with WebSockets**
     -   Transition from HTTP polling to WebSockets for instant updates to questions and votes.
     -   **Action (Backend)**: Integrate a WebSocket library (e.g., `gorilla/websocket`) to broadcast updates to clients in a session.
@@ -109,3 +114,7 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [ ] **Propagate Contexts to Database Layer**
     -   **Action**: Update the `Storer` interface and `MongoStorage` implementation to accept a `context.Context` from HTTP handlers instead of hardcoding `context.Background()`. This ensures database queries are automatically cancelled if an HTTP request times out or is aborted by the user.
+
+-   [ ] **Deliver precompiled GO binary**
+    -   **Action**: Create Github action that precompiles GO binary and create a Docker image. Then reference that Docker image in Docker compose file(s).
+
