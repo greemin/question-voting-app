@@ -109,10 +109,8 @@ This document outlines the development plan for the application. Phases are orga
     -   Automate testing and deployment.
     -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
     -   **Action**: Extend the workflow to build and push Docker images, and eventually deploy to a hosting provider.
+    -   **Action**: Create Github action that precompiles GO binary and create a Docker image. Then reference that Docker image in Docker compose file(s).
 
 ---
 
 ### 🔮 **Long-Term Goals & Tech Debt**
-
--   [ ] **Deliver precompiled GO binary**
-    -   **Action**: Create Github action that precompiles GO binary and create a Docker image. Then reference that Docker image in Docker compose file(s).
