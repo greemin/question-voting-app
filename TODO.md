@@ -33,10 +33,15 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
     -   [x] **Action**: Check that mongodb is started in secure mode.
 
-    [ ] **Routes/Handlers**
-    -   Routes/handlers currently only accept a uuid as session id, but user
-    should be able to name the session freely.
-    -   **Action**: Change handlers to accept not only uuids, but still securely validate the user input. Session interface and mongoDb code will need to be updated.
+    [ ] **Routes/Handlers & Human-Readable URLs**
+    -   Users should be able to name their sessions freely with human-readable slugs instead of UUIDs.
+    -   **Action (Backend - Database)**: Add `CreatedAt` to the Session model/interface. Configure MongoDB on startup to create a unique index on `sessionId` and a TTL index on `createdAt` (e.g., 24-48 hours) to automatically purge old sessions.
+    -   **Action (Backend - API)**: Change router/handlers to accept custom `sessionId` strings instead of strict UUIDs. Securely validate the input (URL-safe characters only).
+    -   **Action (Backend - Collision Handling)**: If a `sessionId` collision occurs during insertion (MongoDB duplicate key error E11000), automatically resolve it by appending a random 4-character suffix and return the final unique slug.
+    -   **Action (Frontend)**: Update the "Create Session" API call and UI to optionally capture and send a user-defined slug. Redirect the user to the actually created session URL returned by the backend.
+
+-   [ ] **Propagate Contexts to Database Layer**
+    -   **Action**: Update the `Storer` interface and `MongoStorage` implementation to accept a `context.Context` from HTTP handlers instead of hardcoding `context.Background()`. This ensures database queries are automatically cancelled if an HTTP request times out or is aborted by the user.
 
 -   [ ] **Implement Real-Time Updates with WebSockets**
     -   Transition from HTTP polling to WebSockets for instant updates to questions and votes.
@@ -109,12 +114,5 @@ This document outlines the development plan for the application. Phases are orga
 
 ### 🔮 **Long-Term Goals & Tech Debt**
 
--   [ ] **Add Database Indexes**
-    -   **Action**: Define a unique index on fields like `sessionId` during database initialization to prevent full collection scans and improve query performance as the application grows.
-
--   [ ] **Propagate Contexts to Database Layer**
-    -   **Action**: Update the `Storer` interface and `MongoStorage` implementation to accept a `context.Context` from HTTP handlers instead of hardcoding `context.Background()`. This ensures database queries are automatically cancelled if an HTTP request times out or is aborted by the user.
-
 -   [ ] **Deliver precompiled GO binary**
     -   **Action**: Create Github action that precompiles GO binary and create a Docker image. Then reference that Docker image in Docker compose file(s).
-
