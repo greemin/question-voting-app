@@ -26,6 +26,7 @@ services:
       - "5174:5173"
 
   mongo:
+    command: ["--auth", "--quiet"]
     environment:
       - MONGO_INITDB_ROOT_USERNAME=devroot
       - MONGO_INITDB_ROOT_PASSWORD=devpassword

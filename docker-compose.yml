@@ -30,7 +30,7 @@ services:
 
   mongo:
     image: mongo:latest
-    command: ["--auth"]
+    command: ["--auth", "--quiet"]
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
@@ -41,8 +41,8 @@ services:
     networks:
       - backend-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
+      test: ["CMD-SHELL", "mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --eval \"db.adminCommand('ping')\""]
+      interval: 10s
       timeout: 5s
       retries: 5
 
