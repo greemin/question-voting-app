@@ -41,6 +41,8 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action (Frontend)**: Update the "Create Session" API call and UI to optionally capture and send a user-defined slug. Redirect the user to the actually created session URL returned by the backend.
     -   [x] **Action (Backend - Tests)**: Update tests to changes and tests slugify logic and slugcollision behavior.
     -   [x] **Action (Backend)**: Readd IsDuplicateKeyError check for mongo collision and find out why the check is failing and fix it.
+    -   [x] **Action (Backend)**: Use unicode character classes in slug regexp
+    check in order to support non-English languages.
 
 -   [x] **Propagate Contexts to Database Layer**
     -   [x] **Action**: Update the `Storer` interface and `MongoStorage` implementation to accept a `context.Context` from HTTP handlers instead of hardcoding `context.Background()`. This ensures database queries are automatically cancelled if an HTTP request times out or is aborted by the user.
