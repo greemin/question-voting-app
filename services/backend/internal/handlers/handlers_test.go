@@ -52,6 +52,9 @@ func TestSlugify(t *testing.T) {
 		{"Uppercase", "ALL CAPS", "all-caps"},
 		{"Empty after slugify", "!@#$%-", ""},
 		{"No change", "already-a-slug", "already-a-slug"},
+		{"Unicode CJK", "こんにちは World", "こんにちは-world"},
+		{"Unicode Cyrillic", "Привет Мир", "привет-мир"},
+		{"Unicode Accents", "Café au Lait", "café-au-lait"},
 	}
 
 	for _, tt := range tests {

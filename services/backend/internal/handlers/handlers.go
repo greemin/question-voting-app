@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-var slugInvalidChars = regexp.MustCompile(`[^a-z0-9\s-]+`)
+var slugInvalidChars = regexp.MustCompile(`[^\p{L}\p{N}\s-]+`)
 var consecutiveHyphens = regexp.MustCompile(`-+`)
 var spaceOrUnderscore = regexp.MustCompile(`[_\s]+`)
 
