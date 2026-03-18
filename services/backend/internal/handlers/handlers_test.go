@@ -165,6 +165,20 @@ func TestCreateSessionHandler(t *testing.T) {
 			t.Errorf("The new suffixed session %q was not created in the storer", newSessionID)
 		}
 	})
+
+	t.Run("SlugTooLong", func(t *testing.T) {
+		storer.Clear()
+		longSlug := strings.Repeat("a", 51)
+		body := fmt.Sprintf(`{"sessionId": "%s"}`, longSlug)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader(body))
+
+		api.CreateSessionHandler(w, r)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+	})
 }
 
 func TestGetQuestionsHandler(t *testing.T) {

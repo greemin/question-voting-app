@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 var slugInvalidChars = regexp.MustCompile(`[^a-z0-9\s-]+`)
@@ -89,6 +91,11 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateSessionRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
+	if len(req.SessionID) > 50 {
+		http.Error(w, "Session ID exceeds maximum length of 50 characters", http.StatusBadRequest)
+		return
+	}
+
 	sessionID := req.SessionID
 	if sessionID != "" {
 		sessionID = slugify(sessionID)
@@ -118,7 +125,7 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 			break // Success
 		}
 
-		if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
 			// On the first collision, add a suffix. On subsequent collisions, generate a new random ID.
 			if i == 0 {
 				suffix, err := generateRandomString(4)

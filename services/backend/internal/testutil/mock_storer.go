@@ -4,6 +4,8 @@ package testutil
 import (
 	"fmt"
 	"question-voting-app/internal/models"
+
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // MockStorer simulates the storage layer using an in-memory map.
@@ -38,8 +40,11 @@ func (ms *MockStorer) LoadSessionData(sessionID string) (*models.SessionData, er
 // CreateSessionData simulates creating a document, returning a duplicate key error if it exists.
 func (ms *MockStorer) CreateSessionData(data *models.SessionData) error {
 	if _, exists := ms.sessions[data.SessionID]; exists {
-		// This string is what mongo.IsDuplicateKeyError() checks for.
-		return fmt.Errorf("E11000 duplicate key error collection")
+		return mongo.WriteException{
+			WriteErrors: []mongo.WriteError{
+				{Code: 11000},
+			},
+		}
 	}
 	ms.sessions[data.SessionID] = data
 	return nil
