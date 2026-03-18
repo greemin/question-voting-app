@@ -33,7 +33,7 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Use environment variables for the connection string and database configuration, provided by the Docker setup.
     -   [x] **Action**: Check that mongodb is started in secure mode.
 
-    [o] **Routes/Handlers & Human-Readable URLs**
+    [x] **Routes/Handlers & Human-Readable URLs**
     -   Users should be able to name their sessions freely with human-readable slugs instead of UUIDs.
     -   [x] **Action (Backend - Database)**: Add `CreatedAt` to the Session model/interface. Configure MongoDB on startup to create a unique index on `sessionId` and a TTL index on `createdAt` (e.g., 24-48 hours) to automatically purge old sessions.
     -   [x] **Action (Backend - API)**: Change router/handlers to accept custom `sessionId` strings instead of strict UUIDs. Securely validate the input (URL-safe characters only).
@@ -116,3 +116,5 @@ This document outlines the development plan for the application. Phases are orga
 ---
 
 ### 🔮 **Long-Term Goals & Tech Debt**
+-   [ ] **Add QR code links to session**
+
