@@ -54,12 +54,16 @@ func generateRandomString(n int) (string, error) {
 
 // API holds the dependencies for the API handlers.
 type API struct {
-	Storer storage.Storer
+	Storer       storage.Storer
+	SecureCookie bool
 }
 
 // New creates a new API instance.
-func New(storer storage.Storer) *API {
-	return &API{Storer: storer}
+func New(storer storage.Storer, secureCookie bool) *API {
+	return &API{
+		Storer:       storer,
+		SecureCookie: secureCookie,
+	}
 }
 
 // getUserSessionID extracts the userSessionId from the cookie or generates a new one.
@@ -76,7 +80,7 @@ func (a *API) getUserSessionID(w http.ResponseWriter, r *http.Request) string {
 		Path:     "/",
 		HttpOnly: true,
 		MaxAge:   86400 * 30, // 30 days
-		Secure:   false,      // Change to true in production
+		Secure:   a.SecureCookie,
 		SameSite: http.SameSiteLaxMode,
 	})
 

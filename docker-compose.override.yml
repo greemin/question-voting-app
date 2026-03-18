@@ -8,9 +8,12 @@ services:
     ports:
       - "8081:8081"
     environment:
+      - PORT=8081
       - APP_ENV=dev
       - APP_USER=air
       - MONGO_URI=mongodb://devroot:devpassword@mongo:27017/?authSource=admin
+      - CORS_ORIGINS=http://localhost:5174
+      - ENV=development
 
   frontend:
     build:

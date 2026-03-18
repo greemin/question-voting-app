@@ -7,6 +7,9 @@ services:
       - "8081:8081"
     environment:
       - MONGO_URI=${MONGO_URI}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - PORT=${PORT}
+      - ENV=${ENV}
     depends_on:
       mongo:
         condition: service_healthy

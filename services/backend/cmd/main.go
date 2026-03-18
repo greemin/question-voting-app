@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"question-voting-app/internal/config"
 	"question-voting-app/internal/handlers"
 	"question-voting-app/internal/storage"
 	"strings"
@@ -16,10 +16,12 @@ import (
 )
 
 func main() {
+	cfg := config.Load()
+
 	// --- CORS Middleware ---
 	corsHandler := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+			w.Header().Set("Access-Control-Allow-Origin", cfg.CORSOrigins)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -33,15 +35,14 @@ func main() {
 	}
 
 	// --- Dependencies Setup ---
-	mongoURI := os.Getenv("MONGO_URI")
-	if mongoURI == "" {
+	if cfg.MongoURI == "" {
 		log.Fatal("MONGO_URI environment variable not set")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI(mongoURI)
+	clientOptions := options.Client().ApplyURI(cfg.MongoURI)
 	client, err := mongo.Connect(clientOptions)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
@@ -59,7 +60,7 @@ func main() {
 	if err := storer.ConfigureIndexes(ctx); err != nil {
 		log.Fatalf("Failed to configure MongoDB indexes: %v", err)
 	}
-	api := handlers.New(storer)
+	api := handlers.New(storer, cfg.SecureCookie)
 
 	// --- API Routes Setup ---
 	mux := http.NewServeMux()
@@ -90,7 +91,6 @@ func main() {
 	})))
 
 	// --- Server Start ---
-	port := ":8081"
-	fmt.Printf("Starting server on http://localhost%s\n", port)
-	log.Fatal(http.ListenAndServe(port, mux))
+	fmt.Printf("Starting server on http://localhost%s\n", cfg.Port)
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
 }

@@ -18,7 +18,7 @@ import (
 // setupTestAPI creates the handler instance with an injected MockStorer.
 func setupTestAPI() (*API, *testutil.MockStorer) {
 	storer := testutil.NewMockStorer()
-	api := New(storer)
+	api := New(storer, false)
 	return api, storer
 }
 
