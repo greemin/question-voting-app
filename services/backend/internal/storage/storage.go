@@ -13,11 +13,11 @@ import (
 
 // Storer defines the interface for session data storage.
 type Storer interface {
-	LoadSessionData(sessionID string) (*models.SessionData, error)
-	CreateSessionData(data *models.SessionData) error
-	UpdateSessionData(data *models.SessionData) error
-	DeleteSessionData(sessionID string) error
-	ConfigureIndexes() error
+	LoadSessionData(ctx context.Context, sessionID string) (*models.SessionData, error)
+	CreateSessionData(ctx context.Context, data *models.SessionData) error
+	UpdateSessionData(ctx context.Context, data *models.SessionData) error
+	DeleteSessionData(ctx context.Context, sessionID string) error
+	ConfigureIndexes(ctx context.Context) error
 }
 
 // MongoStorage implements the Storer interface for MongoDB-based storage.
@@ -33,8 +33,8 @@ func NewMongoStorage(client *mongo.Client, dbName, collectionName string) *Mongo
 }
 
 // ConfigureIndexes sets up the necessary indexes in the MongoDB collection.
-func (ms *MongoStorage) ConfigureIndexes() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (ms *MongoStorage) ConfigureIndexes(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	// Unique index on sessionId
@@ -59,9 +59,9 @@ func (ms *MongoStorage) ConfigureIndexes() error {
 }
 
 // LoadSessionData retrieves a session from MongoDB.
-func (ms *MongoStorage) LoadSessionData(sessionID string) (*models.SessionData, error) {
+func (ms *MongoStorage) LoadSessionData(ctx context.Context, sessionID string) (*models.SessionData, error) {
 	var sessionData models.SessionData
-	err := ms.collection.FindOne(context.Background(), bson.M{"sessionId": sessionID}).Decode(&sessionData)
+	err := ms.collection.FindOne(ctx, bson.M{"sessionId": sessionID}).Decode(&sessionData)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, fmt.Errorf("session not found: %s", sessionID)
@@ -72,8 +72,8 @@ func (ms *MongoStorage) LoadSessionData(sessionID string) (*models.SessionData, 
 }
 
 // CreateSessionData creates a new session document in MongoDB.
-func (ms *MongoStorage) CreateSessionData(data *models.SessionData) error {
-	_, err := ms.collection.InsertOne(context.Background(), data)
+func (ms *MongoStorage) CreateSessionData(ctx context.Context, data *models.SessionData) error {
+	_, err := ms.collection.InsertOne(ctx, data)
 	if err != nil {
 		return fmt.Errorf("failed to create session data: %w", err)
 	}
@@ -81,11 +81,11 @@ func (ms *MongoStorage) CreateSessionData(data *models.SessionData) error {
 }
 
 // UpdateSessionData updates an existing session document in MongoDB.
-func (ms *MongoStorage) UpdateSessionData(data *models.SessionData) error {
+func (ms *MongoStorage) UpdateSessionData(ctx context.Context, data *models.SessionData) error {
 	filter := bson.M{"sessionId": data.SessionID}
 	update := bson.M{"$set": data}
 
-	_, err := ms.collection.UpdateOne(context.Background(), filter, update)
+	_, err := ms.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("failed to update session data: %w", err)
 	}
@@ -93,8 +93,8 @@ func (ms *MongoStorage) UpdateSessionData(data *models.SessionData) error {
 }
 
 // DeleteSessionData deletes a session from MongoDB.
-func (ms *MongoStorage) DeleteSessionData(sessionID string) error {
-	_, err := ms.collection.DeleteOne(context.Background(), bson.M{"sessionId": sessionID})
+func (ms *MongoStorage) DeleteSessionData(ctx context.Context, sessionID string) error {
+	_, err := ms.collection.DeleteOne(ctx, bson.M{"sessionId": sessionID})
 	if err != nil {
 		return fmt.Errorf("failed to delete session data: %w", err)
 	}

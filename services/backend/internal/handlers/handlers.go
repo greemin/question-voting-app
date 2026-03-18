@@ -120,7 +120,7 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Retry logic for session ID collision
 	for i := 0; i < 5; i++ {
-		err := a.Storer.CreateSessionData(newSession)
+		err := a.Storer.CreateSessionData(r.Context(), newSession)
 		if err == nil {
 			break // Success
 		}
@@ -174,7 +174,7 @@ func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := parts[3]
 
-	sessionData, err := a.Storer.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -200,7 +200,7 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionData, err := a.Storer.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -220,7 +220,7 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData.Questions = append(sessionData.Questions, newQuestion)
 
-	if err := a.Storer.UpdateSessionData(sessionData); err != nil {
+	if err := a.Storer.UpdateSessionData(r.Context(), sessionData); err != nil {
 		http.Error(w, "Failed to save question", http.StatusInternalServerError)
 		return
 	}
@@ -246,7 +246,7 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionData, err := a.Storer.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -269,7 +269,7 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 			sessionData.Questions[i].Votes++
 			sessionData.Questions[i].Voters = append(sessionData.Questions[i].Voters, userID)
 
-			if err := a.Storer.UpdateSessionData(sessionData); err != nil {
+			if err := a.Storer.UpdateSessionData(r.Context(), sessionData); err != nil {
 				http.Error(w, "Failed to record vote", http.StatusInternalServerError)
 				return
 			}
@@ -294,7 +294,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := parts[3]
 	userID := a.getUserSessionID(w, r)
 
-	sessionData, err := a.Storer.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -305,7 +305,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Storer.DeleteSessionData(sessionID); err != nil {
+	if err := a.Storer.DeleteSessionData(r.Context(), sessionID); err != nil {
 		http.Error(w, "Failed to delete session file", http.StatusInternalServerError)
 		return
 	}
@@ -324,7 +324,7 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := parts[3]
 	currentUserID := a.getUserSessionID(w, r)
 
-	sessionData, err := a.Storer.LoadSessionData(sessionID)
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"isAdmin": false})

@@ -2,6 +2,7 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
 	"question-voting-app/internal/models"
 
@@ -22,12 +23,12 @@ func NewMockStorer() *MockStorer {
 }
 
 // ConfigureIndexes is a mock implementation that does nothing.
-func (ms *MockStorer) ConfigureIndexes() error {
+func (ms *MockStorer) ConfigureIndexes(ctx context.Context) error {
 	return nil
 }
 
 // LoadSessionData implements the Storer interface by reading from the map.
-func (ms *MockStorer) LoadSessionData(sessionID string) (*models.SessionData, error) {
+func (ms *MockStorer) LoadSessionData(ctx context.Context, sessionID string) (*models.SessionData, error) {
 	data, exists := ms.sessions[sessionID]
 	if !exists {
 		return nil, fmt.Errorf("session not found: %s", sessionID)
@@ -38,7 +39,7 @@ func (ms *MockStorer) LoadSessionData(sessionID string) (*models.SessionData, er
 }
 
 // CreateSessionData simulates creating a document, returning a duplicate key error if it exists.
-func (ms *MockStorer) CreateSessionData(data *models.SessionData) error {
+func (ms *MockStorer) CreateSessionData(ctx context.Context, data *models.SessionData) error {
 	if _, exists := ms.sessions[data.SessionID]; exists {
 		return mongo.WriteException{
 			WriteErrors: []mongo.WriteError{
@@ -51,7 +52,7 @@ func (ms *MockStorer) CreateSessionData(data *models.SessionData) error {
 }
 
 // UpdateSessionData implements the Storer interface by writing to the map.
-func (ms *MockStorer) UpdateSessionData(data *models.SessionData) error {
+func (ms *MockStorer) UpdateSessionData(ctx context.Context, data *models.SessionData) error {
 	if _, exists := ms.sessions[data.SessionID]; !exists {
 		return fmt.Errorf("session not found, cannot update: %s", data.SessionID)
 	}
@@ -60,7 +61,7 @@ func (ms *MockStorer) UpdateSessionData(data *models.SessionData) error {
 }
 
 // DeleteSessionData implements the Storer interface by removing the entry from the map.
-func (ms *MockStorer) DeleteSessionData(sessionID string) error {
+func (ms *MockStorer) DeleteSessionData(ctx context.Context, sessionID string) error {
 	if _, exists := ms.sessions[sessionID]; !exists {
 		return fmt.Errorf("session not found, cannot delete: %s", sessionID)
 	}

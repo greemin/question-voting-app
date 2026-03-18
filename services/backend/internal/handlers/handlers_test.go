@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -229,7 +230,7 @@ func TestSubmitQuestionHandler(t *testing.T) {
 		if w.Code != http.StatusCreated {
 			t.Errorf("Expected status %d, got %d", http.StatusCreated, w.Code)
 		}
-		session, _ := storer.LoadSessionData(sessionID)
+		session, _ := storer.LoadSessionData(context.Background(), sessionID)
 		if len(session.Questions) != 3 {
 			t.Errorf("Expected 3 questions after submission, got %d", len(session.Questions))
 		}
@@ -266,7 +267,7 @@ func TestVoteQuestionHandler(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 		}
-		session, _ := storer.LoadSessionData(sessionID)
+		session, _ := storer.LoadSessionData(context.Background(), sessionID)
 		if session.Questions[0].Votes != 11 {
 			t.Errorf("Expected vote count to be 11, got %d", session.Questions[0].Votes)
 		}
