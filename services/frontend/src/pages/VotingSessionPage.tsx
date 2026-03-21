@@ -1,7 +1,7 @@
 // /frontend/src/pages/VotingSessionPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getQuestions, endSession, checkAdminStatus } from '../api/sessionApi.ts';
+import { getQuestions, endSession, checkAdminStatus, createSessionWebSocket } from '../api/sessionApi.ts';
 import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
 import { Question } from '../models/Question';
@@ -78,13 +78,58 @@ function VotingSessionPage(): JSX.Element {
     // Run the verification when the component mounts
     verifyAdmin();
 
-    // The fetchQuestions polling can be kept separate
-    fetchQuestions(); 
+    // Fetch initial questions
+    fetchQuestions();
 
-    // Polling setup: Fetch questions every 3 seconds (and verify admin status less frequently if desired, but we'll stick to just fetching questions)
-    const intervalId = setInterval(fetchQuestions, 3000);
-    return () => clearInterval(intervalId);
-  }, [sessionId, fetchQuestions]);
+    if (!sessionId) return;
+
+    const ws = createSessionWebSocket(sessionId);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        switch (data.type) {
+          case 'QUESTION_ADDED':
+            setQuestions((prev) => [...prev, data.payload].sort((a, b) => b.votes - a.votes));
+            break;
+
+          case 'VOTE_UPDATED':
+            setQuestions((prev) => {
+              const updated = prev.map((q) => (q.id === data.payload.id ? data.payload : q));
+              return updated.sort((a, b) => b.votes - a.votes);
+            });
+            break;
+
+          case 'SESSION_ENDED':
+            alert('This session has been ended by the admin.');
+            navigate('/');
+            break;
+
+          default:
+            console.warn('Unknown WebSocket event:', data.type);
+        }
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+
+    ws.onerror = (error) => console.error('WebSocket error:', error);
+
+    return () => {
+      // Clear handlers to avoid memory leaks or state updates on unmounted components
+      ws.onmessage = null;
+      ws.onerror = null;
+      
+      // If the socket is still connecting, waiting for it to open before closing 
+      // prevents browser console errors ("connection interrupted") in React Strict Mode.
+      if (ws.readyState === WebSocket.CONNECTING) {
+        ws.onopen = () => ws.close();
+      } else {
+        ws.close();
+      }
+    };
+  }, [sessionId, fetchQuestions, navigate]);
 
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Loading session...</div>;

@@ -11,6 +11,7 @@ import (
 
 	"question-voting-app/internal/models"
 	"question-voting-app/internal/testutil"
+	"question-voting-app/internal/ws"
 )
 
 // --- Test Setup Helper ---
@@ -18,7 +19,8 @@ import (
 // setupTestAPI creates the handler instance with an injected MockStorer.
 func setupTestAPI() (*API, *testutil.MockStorer) {
 	storer := testutil.NewMockStorer()
-	api := New(storer, false)
+	hub := ws.NewHub(false)
+	api := New(storer, false, hub)
 	return api, storer
 }
 
@@ -181,6 +183,42 @@ func TestCreateSessionHandler(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+	})
+}
+
+func TestServeWS(t *testing.T) {
+	api, storer := setupTestAPI()
+	sessionID := "ws-session"
+	storer.PreloadSession(createMockSession(sessionID, "admin-1", true))
+
+	t.Run("SessionNotFound", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/session/non-existent/ws", nil)
+		api.ServeWS(w, r)
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("InvalidPath", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/websock", nil)
+		api.ServeWS(w, r)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("ValidPathButNotWebSocket", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/ws", nil)
+		api.ServeWS(w, r)
+
+		// Since the request doesn't have proper websocket upgrade headers,
+		// upgrader.Upgrade will fail, log the error, and write a 400 Bad Request status.
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 		}
 	})
 }

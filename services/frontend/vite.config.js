@@ -13,9 +13,10 @@ export default defineConfig({
     port: 5173, // Default Vite port
     proxy: {
       '/api': {
-        target: 'http://backend:8081', // Proxy to Go backend service
+        target: process.env.VITE_API_URL, // Proxy to Go backend service
         changeOrigin: true,
-        secure: false,
+        ws: true,
+        secure: process.env.ENV === 'production' || process.env.NODE_ENV === 'production',
       },
     },
   },

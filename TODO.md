@@ -51,10 +51,10 @@ This document outlines the development plan for the application. Phases are orga
     -   Remove hardcoded configuration values from the codebase.
     -   [x] **Action**: Move all environment-specific values (ports, CORS origins, database URIs, cookie settings) to environment variables. Consider a library like `Viper` for structured configuration.
 
--   [ ] **Implement Real-Time Updates with WebSockets**
+-   [x] **Implement Real-Time Updates with WebSockets**
     -   Transition from HTTP polling to WebSockets for instant updates to questions and votes.
-    -   **Action (Backend)**: Integrate a WebSocket library (e.g., `gorilla/websocket`) to broadcast updates to clients in a session.
-    -   **Action (Frontend)**: Use the native `WebSocket` API to listen for and display real-time changes.
+    -   [x] **Action (Backend)**: Integrate a WebSocket library (e.g., `gorilla/websocket`) to broadcast updates to clients in a session.
+    -   [x] **Action (Frontend)**: Use the native `WebSocket` API to listen for and display real-time changes.
 
 
 ---

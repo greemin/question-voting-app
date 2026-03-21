@@ -71,3 +71,14 @@ export const checkAdminStatus = async (sessionId: string): Promise<{ isAdmin: bo
     const response = await fetch(`${API_BASE}/${sessionId}/check-admin`);
     return await handleResponse(response);
 };
+
+/**
+ * Creates a WebSocket connection for real-time session updates.
+ * @param {string} sessionId
+ * @returns {WebSocket}
+ */
+export const createSessionWebSocket = (sessionId: string): WebSocket => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}${API_BASE}/${sessionId}/ws`;
+  return new WebSocket(wsUrl);
+};

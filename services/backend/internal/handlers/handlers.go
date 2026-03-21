@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"question-voting-app/internal/models"
 	"question-voting-app/internal/storage"
+	"question-voting-app/internal/ws"
 	"regexp"
 	"sort"
 	"strings"
@@ -56,13 +57,15 @@ func generateRandomString(n int) (string, error) {
 type API struct {
 	Storer       storage.Storer
 	SecureCookie bool
+	Hub          *ws.Hub
 }
 
 // New creates a new API instance.
-func New(storer storage.Storer, secureCookie bool) *API {
+func New(storer storage.Storer, secureCookie bool, hub *ws.Hub) *API {
 	return &API{
 		Storer:       storer,
 		SecureCookie: secureCookie,
+		Hub:          hub,
 	}
 }
 
@@ -229,6 +232,17 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast update
+	if a.Hub != nil {
+		event := map[string]interface{}{
+			"type":    "QUESTION_ADDED",
+			"payload": newQuestion,
+		}
+		if msg, err := json.Marshal(event); err == nil {
+			a.Hub.Broadcast(sessionID, msg)
+		}
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newQuestion)
 }
@@ -278,6 +292,17 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			// Broadcast update
+			if a.Hub != nil {
+				event := map[string]interface{}{
+					"type":    "VOTE_UPDATED",
+					"payload": sessionData.Questions[i],
+				}
+				if msg, err := json.Marshal(event); err == nil {
+					a.Hub.Broadcast(sessionID, msg)
+				}
+			}
+
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(sessionData.Questions[i])
 			return
@@ -314,6 +339,16 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast that the session ended
+	if a.Hub != nil {
+		event := map[string]interface{}{
+			"type": "SESSION_ENDED",
+		}
+		if msg, err := json.Marshal(event); err == nil {
+			a.Hub.Broadcast(sessionID, msg)
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -339,4 +374,26 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"isAdmin": isAdmin})
+}
+
+// ServeWS handles WebSocket requests from the frontend.
+// GET /api/session/{sessionId}/ws
+func (a *API) ServeWS(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 || parts[len(parts)-1] != "ws" {
+		http.Error(w, "Invalid path format", http.StatusBadRequest)
+		return
+	}
+	sessionID := parts[3]
+
+	// Ensure the session exists before allowing a websocket connection
+	_, err := a.Storer.LoadSessionData(r.Context(), sessionID)
+	if err != nil {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+
+	if a.Hub != nil {
+		a.Hub.ServeWS(w, r, sessionID)
+	}
 }

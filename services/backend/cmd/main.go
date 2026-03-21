@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"question-voting-app/internal/config"
 	"question-voting-app/internal/handlers"
 	"question-voting-app/internal/storage"
+	"question-voting-app/internal/ws"
 	"strings"
 	"time"
 
@@ -17,22 +19,6 @@ import (
 
 func main() {
 	cfg := config.Load()
-
-	// --- CORS Middleware ---
-	corsHandler := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", cfg.CORSOrigins)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
 
 	// --- Dependencies Setup ---
 	if cfg.MongoURI == "" {
@@ -60,9 +46,36 @@ func main() {
 	if err := storer.ConfigureIndexes(ctx); err != nil {
 		log.Fatalf("Failed to configure MongoDB indexes: %v", err)
 	}
-	api := handlers.New(storer, cfg.SecureCookie)
 
-	// --- API Routes Setup ---
+	isProduction := os.Getenv("ENV") == "production"
+	hub := ws.NewHub(isProduction)
+	api := handlers.New(storer, cfg.SecureCookie, hub)
+
+	mux := SetupRouter(api, cfg.CORSOrigins)
+
+	// --- Server Start ---
+	fmt.Printf("Starting server on http://localhost%s\n", cfg.Port)
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
+}
+
+// SetupRouter configures the API routes and applies CORS middleware.
+func SetupRouter(api *handlers.API, corsOrigins string) *http.ServeMux {
+	// --- CORS Middleware ---
+	corsHandler := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", corsOrigins)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+
 	mux := http.NewServeMux()
 
 	mux.Handle("/api/session", corsHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -83,6 +96,8 @@ func main() {
 			api.SubmitQuestionHandler(w, r)
 		} else if r.Method == http.MethodPut && strings.HasSuffix(path, "/vote") {
 			api.VoteQuestionHandler(w, r)
+		} else if r.Method == http.MethodGet && strings.HasSuffix(path, "/ws") {
+			api.ServeWS(w, r)
 		} else if r.Method == http.MethodDelete && strings.Count(path, "/") == 3 {
 			api.EndSessionHandler(w, r)
 		} else {
@@ -90,7 +105,5 @@ func main() {
 		}
 	})))
 
-	// --- Server Start ---
-	fmt.Printf("Starting server on http://localhost%s\n", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
+	return mux
 }

@@ -24,6 +24,10 @@ services:
       - /app/node_modules
     ports:
       - "5174:5173"
+    environment:
+      - ENV=development
+      - NODE_ENV=development
+      - VITE_API_URL=http://backend:8081
 
   mongo:
     command: ["--auth", "--quiet"]
