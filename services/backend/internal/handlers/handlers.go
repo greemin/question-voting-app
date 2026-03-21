@@ -22,6 +22,11 @@ var slugInvalidChars = regexp.MustCompile(`[^\p{L}\p{N}\s-]+`)
 var consecutiveHyphens = regexp.MustCompile(`-+`)
 var spaceOrUnderscore = regexp.MustCompile(`[_\s]+`)
 
+const (
+	userSessionIDCookie = "userSessionId"
+	authHeader          = "Authorization"
+)
+
 func slugify(s string) string {
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "&", " and ")
@@ -71,14 +76,14 @@ func New(storer storage.Storer, secureCookie bool, hub *ws.Hub) *API {
 
 // getUserSessionID extracts the userSessionId from the cookie or generates a new one.
 func (a *API) getUserSessionID(w http.ResponseWriter, r *http.Request) string {
-	cookie, err := r.Cookie("userSessionId")
+	cookie, err := r.Cookie(userSessionIDCookie)
 	if err == nil {
 		return cookie.Value
 	}
 
 	newID := uuid.New().String()
 	http.SetCookie(w, &http.Cookie{
-		Name:     "userSessionId",
+		Name:     userSessionIDCookie,
 		Value:    newID,
 		Path:     "/",
 		HttpOnly: true,
@@ -97,7 +102,10 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	adminToken := uuid.New().String() // Generate secret admin token
 
 	var req models.CreateSessionRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
 	if len(req.SessionID) > 50 {
 		http.Error(w, "Session ID exceeds maximum length of 50 characters", http.StatusBadRequest)
@@ -120,7 +128,7 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	newSession := &models.SessionData{
 		SessionID:   sessionID,
-		AdminUserID: adminToken, // Repurposing this field to store the token
+		AdminToken: adminToken, // Repurposing this field to store the token
 		IsActive:    true,
 		CreatedAt:   time.Now(),
 		Questions:   []models.Question{},
@@ -329,7 +337,7 @@ func (a *API) DeleteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := parts[3]
 	questionID := parts[5]
 
-	authHeader := r.Header.Get("Authorization")
+	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
@@ -338,7 +346,7 @@ func (a *API) DeleteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessionData.AdminUserID != providedToken || providedToken == "" {
+	if sessionData.AdminToken != providedToken || providedToken == "" {
 		http.Error(w, "Unauthorized", http.StatusForbidden)
 		return
 	}
@@ -389,7 +397,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := parts[3]
 
-	authHeader := r.Header.Get("Authorization")
+	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
@@ -398,7 +406,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessionData.AdminUserID != providedToken || providedToken == "" {
+	if sessionData.AdminToken != providedToken || providedToken == "" {
 		http.Error(w, "Unauthorized: Only the session creator can end the session.", http.StatusForbidden)
 		return
 	}
@@ -431,7 +439,7 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := parts[3]
 
-	authHeader := r.Header.Get("Authorization")
+	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
@@ -441,7 +449,7 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAdmin := sessionData.AdminUserID == providedToken && providedToken != ""
+	isAdmin := sessionData.AdminToken == providedToken && providedToken != ""
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"isAdmin": isAdmin})

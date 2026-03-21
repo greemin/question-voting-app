@@ -5,7 +5,7 @@ import "time"
 // SessionData represents the structure of the data stored in session${sessionId}.json
 type SessionData struct {
 	SessionID   string     `json:"sessionId" bson:"sessionId"`
-	AdminUserID string     `json:"adminUserId" bson:"adminUserId"`
+	AdminToken string     `json:"adminToken" bson:"adminToken"`
 	IsActive    bool       `json:"isActive" bson:"isActive"`
 	CreatedAt   time.Time  `json:"createdAt" bson:"createdAt"`
 	Questions   []Question `json:"questions" bson:"questions"`
