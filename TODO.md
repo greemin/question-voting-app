@@ -63,9 +63,9 @@ This document outlines the development plan for the application. Phases are orga
 
 *This phase improves the application's security and expands admin capabilities.*
 
--   [ ] **Improve Admin Authorization**
+-   [x] **Improve Admin Authorization**
     -   Replace the simple cookie-based admin check with a more secure method.
-    -   **Action**: Implement a secret token-based system. When a session is created, return a unique admin token to the creator, who must then provide it in an `Authorization` header for protected actions.
+    -   [x] **Action**: Implement a secret token-based system. When a session is created, return a unique admin token to the creator, who must then provide it in an `Authorization` header for protected actions.
 
 -   [ ] **Allow Admin to Delete a Question**
     -   Give session admins more control over the content.
@@ -119,4 +119,3 @@ This document outlines the development plan for the application. Phases are orga
 
 ### 🔮 **Long-Term Goals & Tech Debt**
 -   [ ] **Add QR code links to session**
-

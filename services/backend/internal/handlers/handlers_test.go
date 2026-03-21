@@ -90,6 +90,11 @@ func TestCreateSessionHandler(t *testing.T) {
 		if len(sessionID) != 8 {
 			t.Errorf("Expected a random 8-character slug, got %q", sessionID)
 		}
+
+		adminToken := resp["adminToken"]
+		if adminToken == "" {
+			t.Error("Expected an adminToken to be returned")
+		}
 		if !storer.HasSession(sessionID) {
 			t.Error("Session was not created in the storer")
 		}
@@ -331,15 +336,14 @@ func TestVoteQuestionHandler(t *testing.T) {
 func TestEndSessionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
 	sessionID := "end-this-session"
-	adminID := "admin-4"
-	otherUser := "user-4"
+	adminToken := "secret-admin-token"
 
 	t.Run("Success_Admin", func(t *testing.T) {
 		storer.Clear()
-		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		storer.PreloadSession(createMockSession(sessionID, adminToken, true))
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
-		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: adminID})
+		r.Header.Set("Authorization", "Bearer "+adminToken)
 		api.EndSessionHandler(w, r)
 		if w.Code != http.StatusNoContent {
 			t.Errorf("Expected status %d, got %d", http.StatusNoContent, w.Code)
@@ -351,10 +355,10 @@ func TestEndSessionHandler(t *testing.T) {
 
 	t.Run("Unauthorized_User", func(t *testing.T) {
 		storer.Clear()
-		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		storer.PreloadSession(createMockSession(sessionID, adminToken, true))
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
-		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: otherUser})
+		r.Header.Set("Authorization", "Bearer invalid-token")
 		api.EndSessionHandler(w, r)
 		if w.Code != http.StatusForbidden {
 			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
@@ -368,14 +372,13 @@ func TestEndSessionHandler(t *testing.T) {
 func TestCheckAdminHandler(t *testing.T) {
 	api, storer := setupTestAPI()
 	sessionID := "check-admin-session"
-	adminID := "admin-5"
-	otherUser := "user-5"
-	storer.PreloadSession(createMockSession(sessionID, adminID, true))
+	adminToken := "secret-admin-token"
+	storer.PreloadSession(createMockSession(sessionID, adminToken, true))
 
 	t.Run("IsAdmin", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
-		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: adminID})
+		r.Header.Set("Authorization", "Bearer "+adminToken)
 		api.CheckAdminHandler(w, r)
 		if w.Code != http.StatusOK {
 			t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
@@ -390,7 +393,7 @@ func TestCheckAdminHandler(t *testing.T) {
 	t.Run("IsNotAdmin", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
-		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: otherUser})
+		r.Header.Set("Authorization", "Bearer wrong-token")
 		api.CheckAdminHandler(w, r)
 		if w.Code != http.StatusOK {
 			t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)

@@ -3,12 +3,6 @@ import { Question } from '../models/Question';
 
 const API_BASE = '/api/session';
 
-// Helper function to get the current userSessionId from the document cookies
-const getAdminIdFromCookie = (): string | null => {
-  const cookieMatch = document.cookie.match(new RegExp('(^| )userSessionId=([^;]+)'));
-  return cookieMatch ? cookieMatch[2] : null;
-};
-
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     const errorText = await response.text();
@@ -18,7 +12,7 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-export const createSession = async (sessionId?: string): Promise<{ sessionId: string; adminId: string | null }> => {
+export const createSession = async (sessionId?: string): Promise<{ sessionId: string; adminToken: string }> => {
   const response = await fetch(API_BASE, {
     method: 'POST',
     headers: {
@@ -28,8 +22,9 @@ export const createSession = async (sessionId?: string): Promise<{ sessionId: st
     credentials: 'include',
   });
   const data = await handleResponse(response);
-  // Admin ID is now guaranteed to be in the cookie
-  data.adminId = getAdminIdFromCookie();
+  if (data.adminToken) {
+    localStorage.setItem(`adminToken_${data.sessionId}`, data.adminToken);
+  }
   return data;
 };
 
@@ -55,20 +50,30 @@ export const voteQuestion = async (sessionId: string, questionId: string): Promi
 };
 
 export const endSession = async (sessionId: string): Promise<null> => {
+  const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+  const headers: Record<string, string> = {};
+  if (adminToken) {
+      headers['Authorization'] = `Bearer ${adminToken}`;
+  }
   const response = await fetch(`${API_BASE}/${sessionId}`, {
     method: 'DELETE',
+    headers,
   });
   return handleResponse(response);
 };
 
 /**
- * Checks if the current user session is the admin for the session.
- * This relies on the Go backend reading the HttpOnly cookie.
+ * Checks if the current user has the admin token for the session.
  * @param {string} sessionId
  * @returns {Promise<boolean>}
  */
 export const checkAdminStatus = async (sessionId: string): Promise<{ isAdmin: boolean }> => {
-    const response = await fetch(`${API_BASE}/${sessionId}/check-admin`);
+    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+    const headers: Record<string, string> = {};
+    if (adminToken) {
+        headers['Authorization'] = `Bearer ${adminToken}`;
+    }
+    const response = await fetch(`${API_BASE}/${sessionId}/check-admin`, { headers });
     return await handleResponse(response);
 };
 

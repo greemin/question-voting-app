@@ -6,19 +6,12 @@ import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
 import { Question } from '../models/Question';
 
-// Helper to get the admin ID from the cookie for UI check
-const getCookieAdminID = (): string | null => {
-  const cookieMatch = document.cookie.match(new RegExp('(^| )userSessionId=([^;]+)'));
-  return cookieMatch ? cookieMatch[2] : null;
-};
-
 function VotingSessionPage(): JSX.Element {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [adminId, setAdminId] = useState<string | null>(null);
 
   const fetchQuestions = useCallback(async () => {
     try {
@@ -26,19 +19,6 @@ function VotingSessionPage(): JSX.Element {
       const data = await getQuestions(sessionId);
       setQuestions(data);
       setLoading(false);
-
-      // Simple check to determine if the current user is the admin
-      if (data && data.length > 0) {
-        // Assume the adminID check will be done later when we try to end session,
-        // but for initial admin UI, we need the stored admin ID.
-        // For simplicity here, we assume the admin ID will be fetched (or we rely on the cookie).
-        // A real app would have a dedicated endpoint to check admin status.
-        // We'll rely solely on the cookie matching the one stored on session creation.
-        const currentCookieId = getCookieAdminID();
-        // Since the Go backend doesn't expose the stored adminId, we'll check on DELETE.
-        // For UI purposes, we'll optimistically set the adminId from the cookie.
-        setAdminId(currentCookieId);
-      }
     } catch (error: any) {
       console.error('Failed to fetch questions:', error);
       alert(error.message);

@@ -93,7 +93,8 @@ func (a *API) getUserSessionID(w http.ResponseWriter, r *http.Request) string {
 // CreateSessionHandler creates a new voting session.
 // POST /api/session
 func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
-	adminID := a.getUserSessionID(w, r)
+	a.getUserSessionID(w, r)          // Ensure creator also gets a voting cookie
+	adminToken := uuid.New().String() // Generate secret admin token
 
 	var req models.CreateSessionRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -119,7 +120,7 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	newSession := &models.SessionData{
 		SessionID:   sessionID,
-		AdminUserID: adminID,
+		AdminUserID: adminToken, // Repurposing this field to store the token
 		IsActive:    true,
 		CreatedAt:   time.Now(),
 		Questions:   []models.Question{},
@@ -166,8 +167,8 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"sessionId": newSession.SessionID,
-		"adminId":   adminID,
+		"sessionId":  newSession.SessionID,
+		"adminToken": adminToken,
 	})
 }
 
@@ -321,7 +322,9 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
-	userID := a.getUserSessionID(w, r)
+
+	authHeader := r.Header.Get("Authorization")
+	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
@@ -329,7 +332,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessionData.AdminUserID != userID {
+	if sessionData.AdminUserID != providedToken || providedToken == "" {
 		http.Error(w, "Unauthorized: Only the session creator can end the session.", http.StatusForbidden)
 		return
 	}
@@ -352,7 +355,7 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// CheckAdminHandler checks if the current user (via cookie) is the session admin.
+// CheckAdminHandler checks if the current user holds the secret admin token.
 // GET /api/session/{sessionId}/check-admin
 func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
@@ -361,7 +364,9 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionID := parts[3]
-	currentUserID := a.getUserSessionID(w, r)
+
+	authHeader := r.Header.Get("Authorization")
+	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
@@ -370,7 +375,7 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAdmin := sessionData.AdminUserID == currentUserID
+	isAdmin := sessionData.AdminUserID == providedToken && providedToken != ""
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"isAdmin": isAdmin})
