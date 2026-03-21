@@ -313,6 +313,67 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Question not found", http.StatusNotFound)
 }
 
+// DeleteQuestionHandler allows the admin to delete a question.
+// DELETE /api/session/{sessionId}/questions/{questionId}
+func (a *API) DeleteQuestionHandler(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 6 {
+		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
+		return
+	}
+	sessionID := parts[3]
+	questionID := parts[5]
+
+	authHeader := r.Header.Get("Authorization")
+	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
+	if err != nil {
+		http.Error(w, "Session not found", http.StatusNotFound)
+		return
+	}
+
+	if sessionData.AdminUserID != providedToken || providedToken == "" {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+
+	found := false
+	var updatedQuestions []models.Question
+	for _, q := range sessionData.Questions {
+		if q.ID == questionID {
+			found = true
+		} else {
+			updatedQuestions = append(updatedQuestions, q)
+		}
+	}
+
+	if !found {
+		http.Error(w, "Question not found", http.StatusNotFound)
+		return
+	}
+
+	sessionData.Questions = updatedQuestions
+
+	if err := a.Storer.UpdateSessionData(r.Context(), sessionData); err != nil {
+		http.Error(w, "Failed to delete question", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast update
+	if a.Hub != nil {
+		event := map[string]interface{}{
+			"type":    "QUESTION_DELETED",
+			"payload": map[string]string{"id": questionID},
+		}
+		if msg, err := json.Marshal(event); err == nil {
+			a.Hub.Broadcast(sessionID, msg)
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // EndSessionHandler allows the admin to end the session and delete the file.
 // DELETE /api/session/{sessionId}
 func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {

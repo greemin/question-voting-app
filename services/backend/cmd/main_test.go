@@ -44,6 +44,7 @@ func TestSetupRouter_Routes(t *testing.T) {
 		{"Root Wrong Method", http.MethodGet, "/api/session", http.StatusMethodNotAllowed},
 		{"Get Questions (Not Found Session)", http.MethodGet, "/api/session/123/questions", http.StatusNotFound},
 		{"End Session (No Content/Not Found silently succeeds)", http.MethodDelete, "/api/session/123", http.StatusNoContent},
+		{"Delete Question (Not Found Session)", http.MethodDelete, "/api/session/123/questions/456", http.StatusNotFound},
 		{"Check Admin", http.MethodGet, "/api/session/123/check-admin", http.StatusOK},
 		{"Unknown Route", http.MethodPatch, "/api/session/123/unknown", http.StatusNotFound},
 		{"Missing Handler Path", http.MethodGet, "/api/session/123/invalid-suffix", http.StatusNotFound},

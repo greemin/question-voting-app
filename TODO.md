@@ -67,10 +67,10 @@ This document outlines the development plan for the application. Phases are orga
     -   Replace the simple cookie-based admin check with a more secure method.
     -   [x] **Action**: Implement a secret token-based system. When a session is created, return a unique admin token to the creator, who must then provide it in an `Authorization` header for protected actions.
 
--   [ ] **Allow Admin to Delete a Question**
+-   [x] **Allow Admin to Delete a Question**
     -   Give session admins more control over the content.
-    -   **Action (Backend)**: Create a new `DELETE /api/session/{sessionId}/questions/{questionId}` endpoint, protected by the new admin authorization.
-    -   **Action (Frontend)**: Add a "Delete" button to `QuestionItem.tsx` that is only visible to the admin.
+    -   [x] **Action (Backend)**: Create a new `DELETE /api/session/{sessionId}/questions/{questionId}` endpoint, protected by the new admin authorization.
+    -   [x] **Action (Frontend)**: Add a "Delete" button to `QuestionItem.tsx` that is only visible to the admin.
 
 ---
 

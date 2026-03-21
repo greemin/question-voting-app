@@ -81,6 +81,10 @@ function VotingSessionPage(): JSX.Element {
             });
             break;
 
+          case 'QUESTION_DELETED':
+            setQuestions((prev) => prev.filter((q) => q.id !== data.payload.id));
+            break;
+
           case 'SESSION_ENDED':
             alert('This session has been ended by the admin.');
             navigate('/');
@@ -142,6 +146,7 @@ function VotingSessionPage(): JSX.Element {
               key={q.id} 
               sessionId={sessionId!} 
               question={q} 
+              isAdmin={isAdmin}
               onVoteSuccess={fetchQuestions} // Re-fetch to update votes and sort
             />
           ))}

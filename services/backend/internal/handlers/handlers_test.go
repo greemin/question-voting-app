@@ -333,6 +333,43 @@ func TestVoteQuestionHandler(t *testing.T) {
 	})
 }
 
+func TestDeleteQuestionHandler(t *testing.T) {
+	api, storer := setupTestAPI()
+	sessionID := "delete-q-session"
+	adminToken := "secret-admin-token"
+	questionID := "00000000-0000-0000-0000-000000000011"
+
+	t.Run("Success_Admin", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminToken, true))
+		path := fmt.Sprintf("/api/session/%s/questions/%s", sessionID, questionID)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodDelete, path, nil)
+		r.Header.Set("Authorization", "Bearer "+adminToken)
+		api.DeleteQuestionHandler(w, r)
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %d, got %d", http.StatusNoContent, w.Code)
+		}
+		session, _ := storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.Questions) != 1 {
+			t.Errorf("Expected 1 question remaining, got %d", len(session.Questions))
+		}
+	})
+
+	t.Run("Unauthorized_User", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminToken, true))
+		path := fmt.Sprintf("/api/session/%s/questions/%s", sessionID, questionID)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodDelete, path, nil)
+		r.Header.Set("Authorization", "Bearer invalid-token")
+		api.DeleteQuestionHandler(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+	})
+}
+
 func TestEndSessionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
 	sessionID := "end-this-session"

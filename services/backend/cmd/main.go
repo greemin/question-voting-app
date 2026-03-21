@@ -96,6 +96,8 @@ func SetupRouter(api *handlers.API, corsOrigins string) *http.ServeMux {
 			api.SubmitQuestionHandler(w, r)
 		} else if r.Method == http.MethodPut && strings.HasSuffix(path, "/vote") {
 			api.VoteQuestionHandler(w, r)
+		} else if r.Method == http.MethodDelete && strings.Contains(path, "/questions/") {
+			api.DeleteQuestionHandler(w, r)
 		} else if r.Method == http.MethodGet && strings.HasSuffix(path, "/ws") {
 			api.ServeWS(w, r)
 		} else if r.Method == http.MethodDelete && strings.Count(path, "/") == 3 {

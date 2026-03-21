@@ -49,6 +49,19 @@ export const voteQuestion = async (sessionId: string, questionId: string): Promi
   return handleResponse(response);
 };
 
+export const deleteQuestion = async (sessionId: string, questionId: string): Promise<null> => {
+  const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+  const headers: Record<string, string> = {};
+  if (adminToken) {
+      headers['Authorization'] = `Bearer ${adminToken}`;
+  }
+  const response = await fetch(`${API_BASE}/${sessionId}/questions/${questionId}`, {
+    method: 'DELETE',
+    headers,
+  });
+  return handleResponse(response);
+};
+
 export const endSession = async (sessionId: string): Promise<null> => {
   const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
   const headers: Record<string, string> = {};
