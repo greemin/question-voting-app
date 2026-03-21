@@ -29,12 +29,12 @@ export const createSession = async (sessionId?: string): Promise<{ sessionId: st
 };
 
 export const getQuestions = async (sessionId: string): Promise<Question[]> => {
-  const response = await fetch(`${API_BASE}/${sessionId}/questions`);
+  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions`);
   return handleResponse(response);
 };
 
 export const submitQuestion = async (sessionId: string, text: string): Promise<null> => {
-  const response = await fetch(`${API_BASE}/${sessionId}/questions`, {
+  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
@@ -43,7 +43,7 @@ export const submitQuestion = async (sessionId: string, text: string): Promise<n
 };
 
 export const voteQuestion = async (sessionId: string, questionId: string): Promise<null> => {
-  const response = await fetch(`${API_BASE}/${sessionId}/questions/${questionId}/vote`, {
+  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/vote`, {
     method: 'PUT',
   });
   return handleResponse(response);
@@ -55,7 +55,7 @@ export const deleteQuestion = async (sessionId: string, questionId: string): Pro
   if (adminToken) {
       headers['Authorization'] = `Bearer ${adminToken}`;
   }
-  const response = await fetch(`${API_BASE}/${sessionId}/questions/${questionId}`, {
+  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}`, {
     method: 'DELETE',
     headers,
   });
@@ -68,7 +68,7 @@ export const endSession = async (sessionId: string): Promise<null> => {
   if (adminToken) {
       headers['Authorization'] = `Bearer ${adminToken}`;
   }
-  const response = await fetch(`${API_BASE}/${sessionId}`, {
+  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`, {
     method: 'DELETE',
     headers,
   });
@@ -86,7 +86,7 @@ export const checkAdminStatus = async (sessionId: string): Promise<{ isAdmin: bo
     if (adminToken) {
         headers['Authorization'] = `Bearer ${adminToken}`;
     }
-    const response = await fetch(`${API_BASE}/${sessionId}/check-admin`, { headers });
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/check-admin`, { headers });
     return await handleResponse(response);
 };
 
@@ -97,6 +97,6 @@ export const checkAdminStatus = async (sessionId: string): Promise<{ isAdmin: bo
  */
 export const createSessionWebSocket = (sessionId: string): WebSocket => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}${API_BASE}/${sessionId}/ws`;
+  const wsUrl = `${protocol}//${window.location.host}${API_BASE}/${encodeURIComponent(sessionId)}/ws`;
   return new WebSocket(wsUrl);
 };
