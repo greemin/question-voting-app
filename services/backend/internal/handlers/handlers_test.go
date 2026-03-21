@@ -25,11 +25,11 @@ func setupTestAPI() (*API, *testutil.MockStorer) {
 }
 
 // createMockSession creates a SessionData object for testing.
-func createMockSession(id string, adminID string, isActive bool) *models.SessionData {
+func createMockSession(id string, adminToken string, isActive bool) *models.SessionData {
 	return &models.SessionData{
-		SessionID:   id,
-		AdminUserID: adminID,
-		IsActive:    isActive,
+		SessionID:  id,
+		AdminToken: adminToken,
+		IsActive:   isActive,
 		Questions: []models.Question{
 			{ID: "00000000-0000-0000-0000-000000000011", Text: "Question One (10 votes)", Votes: 10, Voters: []string{"u1", "u2"}},
 			{ID: "00000000-0000-0000-0000-000000000012", Text: "Question Two (5 votes)", Votes: 5, Voters: []string{"u3"}},
@@ -77,7 +77,7 @@ func TestCreateSessionHandler(t *testing.T) {
 	t.Run("NoSlugProvided", func(t *testing.T) {
 		storer.Clear()
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodPost, "/api/session", nil)
+		r := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader("{}"))
 
 		api.CreateSessionHandler(w, r)
 

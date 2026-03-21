@@ -1,10 +1,12 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"question-voting-app/internal/handlers"
 	"question-voting-app/internal/testutil"
+	"strings"
 	"testing"
 )
 
@@ -52,7 +54,11 @@ func TestSetupRouter_Routes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, tt.path, nil)
+			var body io.Reader
+			if tt.name == "Create Session" {
+				body = strings.NewReader("{}")
+			}
+			req := httptest.NewRequest(tt.method, tt.path, body)
 			w := httptest.NewRecorder()
 			mux.ServeHTTP(w, req)
 

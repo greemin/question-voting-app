@@ -84,9 +84,9 @@ func (ms *MockStorer) Clear() {
 }
 
 // FindSessionByAdminID is a helper for finding a session for testing purposes.
-func (ms *MockStorer) FindSessionByAdminID(adminID string) *models.SessionData {
+func (ms *MockStorer) FindSessionByAdminToken(AdminToken string) *models.SessionData {
 	for _, s := range ms.sessions {
-		if s.AdminUserID == adminID {
+		if s.AdminToken == AdminToken {
 			// Return a copy
 			sCopy := *s
 			return &sCopy
