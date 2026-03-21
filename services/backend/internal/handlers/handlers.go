@@ -203,8 +203,13 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	a.getUserSessionID(w, r) // Ensure user has a session cookie
 
 	var submission models.QuestionSubmission
-	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil || submission.Text == "" {
+	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil || strings.TrimSpace(submission.Text) == "" {
 		http.Error(w, "Invalid request body or empty question", http.StatusBadRequest)
+		return
+	}
+
+	if len(submission.Text) > 500 {
+		http.Error(w, "Question exceeds maximum length of 500 characters", http.StatusBadRequest)
 		return
 	}
 
