@@ -2,7 +2,7 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { vi } from 'vitest';
+import { vi, Mock } from 'vitest';
 import VotingSessionPage from '../../src/pages/VotingSessionPage';
 import * as sessionApi from '../../src/api/sessionApi';
 import { Question } from '../../src/models/Question';
@@ -18,11 +18,26 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../src/api/sessionApi');
+vi.mock('../../src/api/sessionApi', () => ({
+  createSession: vi.fn(),
+  getQuestions: vi.fn(),
+  submitQuestion: vi.fn(),
+  voteQuestion: vi.fn(),
+  deleteQuestion: vi.fn(),
+  endSession: vi.fn(),
+  checkAdminStatus: vi.fn(),
+  createSessionWebSocket: vi.fn(() => ({
+    onmessage: null,
+    onerror: null,
+    close: vi.fn(),
+    readyState: 1, // WebSocket.OPEN
+    onopen: null,
+  })),
+}));
 
 const mockQuestions: Question[] = [
-  { id: 'q1', session_id: 'test-session', text: 'Question 1', vote_count: 3, author: 'test', created_at: '' },
-  { id: 'q2', session_id: 'test-session', text: 'Question 2', vote_count: 5, author: 'test', created_at: '' },
+  { id: 'q1', session_id: 'test-session', text: 'Question 1', votes: 3, voters: [] },
+  { id: 'q2', session_id: 'test-session', text: 'Question 2', votes: 5, voters: [] },
 ];
 
 describe('VotingSessionPage', () => {
@@ -31,8 +46,8 @@ describe('VotingSessionPage', () => {
   });
 
   it('shows loading state initially, then fetches and displays questions', async () => {
-    vi.spyOn(sessionApi, 'getQuestions').mockResolvedValue(mockQuestions);
-    vi.spyOn(sessionApi, 'checkAdminStatus').mockResolvedValue({ isAdmin: true });
+    (sessionApi.getQuestions as Mock).mockResolvedValue(mockQuestions);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: true });
 
     render(
       <BrowserRouter>
@@ -48,9 +63,9 @@ describe('VotingSessionPage', () => {
   
   it('displays admin panel and handles ending session', async () => {
     window.confirm = vi.fn(() => true);
-    vi.spyOn(sessionApi, 'getQuestions').mockResolvedValue(mockQuestions);
-    vi.spyOn(sessionApi, 'checkAdminStatus').mockResolvedValue({ isAdmin: true });
-    vi.spyOn(sessionApi, 'endSession').mockResolvedValue(null);
+    (sessionApi.getQuestions as Mock).mockResolvedValue(mockQuestions);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: true });
+    (sessionApi.endSession as Mock).mockResolvedValue(null);
 
     render(
       <BrowserRouter>

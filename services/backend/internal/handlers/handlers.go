@@ -113,6 +113,7 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionID := req.SessionID
+	sessionTitle := req.SessionID
 	if sessionID != "" {
 		sessionID = slugify(sessionID)
 	}
@@ -127,11 +128,12 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newSession := &models.SessionData{
-		SessionID:   sessionID,
-		AdminToken: adminToken, // Repurposing this field to store the token
-		IsActive:    true,
-		CreatedAt:   time.Now(),
-		Questions:   []models.Question{},
+		SessionID:    sessionID,
+		SessionTitle: sessionTitle,
+		AdminToken:   adminToken, // Repurposing this field to store the token
+		IsActive:     true,
+		CreatedAt:    time.Now(),
+		Questions:    []models.Question{},
 	}
 
 	// Retry logic for session ID collision
@@ -175,8 +177,9 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
-		"sessionId":  newSession.SessionID,
-		"adminToken": adminToken,
+		"sessionId":    newSession.SessionID,
+		"sessionTitle": newSession.SessionTitle,
+		"adminToken":   adminToken,
 	})
 }
 

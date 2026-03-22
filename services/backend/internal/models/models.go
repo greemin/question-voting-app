@@ -4,11 +4,12 @@ import "time"
 
 // SessionData represents the structure of the data stored in session${sessionId}.json
 type SessionData struct {
-	SessionID   string     `json:"sessionId" bson:"sessionId"`
-	AdminToken string     `json:"adminToken" bson:"adminToken"`
-	IsActive    bool       `json:"isActive" bson:"isActive"`
-	CreatedAt   time.Time  `json:"createdAt" bson:"createdAt"`
-	Questions   []Question `json:"questions" bson:"questions"`
+	SessionTitle string     `json:"sessionTitle" bson:"sessionTitle"`
+	SessionID    string     `json:"sessionId" bson:"sessionId"`
+	AdminToken   string     `json:"adminToken" bson:"adminToken"`
+	IsActive     bool       `json:"isActive" bson:"isActive"`
+	CreatedAt    time.Time  `json:"createdAt" bson:"createdAt"`
+	Questions    []Question `json:"questions" bson:"questions"`
 }
 
 // Question represents a single question submitted by a user

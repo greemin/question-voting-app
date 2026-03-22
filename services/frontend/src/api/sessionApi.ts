@@ -12,7 +12,7 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-export const createSession = async (sessionId?: string): Promise<{ sessionId: string; adminToken: string }> => {
+export const createSession = async (sessionId?: string): Promise<{ sessionId: string; sessionTitle: string; adminToken: string }> => {
   const response = await fetch(API_BASE, {
     method: 'POST',
     headers: {
@@ -24,6 +24,9 @@ export const createSession = async (sessionId?: string): Promise<{ sessionId: st
   const data = await handleResponse(response);
   if (data.adminToken) {
     localStorage.setItem(`adminToken_${data.sessionId}`, data.adminToken);
+  }
+  if (data.sessionTitle) {
+    localStorage.setItem(`sessionTitle_${data.sessionId}`, data.sessionTitle);
   }
   return data;
 };

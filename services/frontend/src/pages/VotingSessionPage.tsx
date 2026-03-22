@@ -1,10 +1,11 @@
 // /frontend/src/pages/VotingSessionPage.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getQuestions, endSession, checkAdminStatus, createSessionWebSocket } from '../api/sessionApi.ts';
 import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
 import { Question } from '../models/Question';
+import './VotingSessionPage.css';
 
 function VotingSessionPage(): JSX.Element {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -12,6 +13,10 @@ function VotingSessionPage(): JSX.Element {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const sessionTitle = useMemo<string>(() => {
+    return localStorage.getItem(`sessionTitle_${sessionId}`);
+
+  }, [sessionId]);
 
   const fetchQuestions = useCallback(async () => {
     try {
@@ -116,18 +121,29 @@ function VotingSessionPage(): JSX.Element {
   }, [sessionId, fetchQuestions, navigate]);
 
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Loading session...</div>;
+  if (loading) return <div className="loading-session">Loading session...</div>;
+  const link = window.location.host + window.location.pathname;
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ borderBottom: '2px solid #333', paddingBottom: '10px' }}>Voting Session: <code style={{ color: '#dc3545' }}>{sessionId}</code></h1>
+    <div className="voting-session-container">
+      <h1 className="session-title">
+        {sessionTitle}
+        <a
+          href={window.location.href}
+          className="session-id"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+            {link}
+          </a>
+        </h1>
       
       {isAdmin && (
-        <div style={{ border: '1px solid #dc3545', padding: '15px', marginBottom: '20px', backgroundColor: '#f8d7da', borderRadius: '5px' }}>
-          <p style={{ fontWeight: 'bold', color: '#721c24' }}>Admin Panel</p>
+        <div className="admin-panel">
+          <p className="admin-panel-title">Admin Panel</p>
           <button 
             onClick={handleEndSession}
-            style={{ padding: '10px 20px', cursor: 'pointer', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }}
+            className="end-session-button"
           >
             End Session & Delete Data
           </button>
@@ -140,7 +156,7 @@ function VotingSessionPage(): JSX.Element {
       {questions.length === 0 ? (
         <p>No questions submitted yet. Be the first!</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="questions-container">
           {questions.map((q) => (
             <QuestionItem 
               key={q.id} 

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSession } from '../api/sessionApi.ts';
+import './HomePage.css';
 
 function HomePage(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
@@ -12,7 +13,7 @@ function HomePage(): JSX.Element {
     setLoading(true);
     try {
       const data = await createSession(customSlug);
-      // data.sessionId is returned, and adminId is confirmed via cookie
+      // data.sessionId is returned
       navigate(`/votingSession/${data.sessionId}`);
     } catch (error: any) {
       alert(`Failed to create session: ${error.message}`);
@@ -22,25 +23,25 @@ function HomePage(): JSX.Element {
   };
 
   return (
-    <div style={{ textAlign: 'center', padding: '50px' }}>
+    <div className="home-page-container">
       <h1>Question Voting App</h1>
-      <div style={{ margin: '20px 0' }}>
+      <div className="custom-slug-container">
         <input
           type="text"
           value={customSlug}
           onChange={(e) => setCustomSlug(e.target.value)}
-          placeholder="Optional: custom-session-name"
-          style={{ padding: '10px', width: '300px', fontSize: '1em' }}
+          placeholder="Sessiontitle: Q&A Session"
+          className="custom-slug-input"
         />
       </div>
       <button
         onClick={handleCreateSession}
         disabled={loading}
-        style={{ padding: '15px 30px', fontSize: '1.2em', cursor: 'pointer', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px' }}
+        className="start-session-button"
       >
         {loading ? 'Creating...' : '🚀 Start New Voting Session'}
       </button>
-      <p style={{ marginTop: '20px', color: '#666' }}>
+      <p className="home-page-info">
         Enter a custom name or start a session to generate a random one.
       </p>
     </div>

@@ -1,0 +1,32 @@
+.home-page-container {
+  text-align: center;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px
+}
+
+.custom-slug-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-slug-input {
+  padding: 10px;
+  font-size: 1em;
+}
+
+.start-session-button {
+  padding: 15px 30px;
+  font-size: 1.2em;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.home-page-info {
+  margin-top: 20px;
+  color: #666;
+}

@@ -2,6 +2,7 @@
 import React from 'react';
 import { voteQuestion, deleteQuestion } from '../api/sessionApi.ts';
 import { Question } from '../models/Question';
+import './QuestionItem.css';
 
 interface QuestionItemProps {
   sessionId: string;
@@ -33,18 +34,18 @@ function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionI
   };
 
   return (
-    <div style={{ border: '1px solid #ddd', padding: '15px', margin: '10px 0', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>
-      <p style={{ fontWeight: 'bold' }}>{question.text}</p>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-        <span style={{ fontSize: '1.2em', color: '#007bff' }}>
+    <div className="question-item-container">
+      <p className="question-text">{question.text}</p>
+      <div className="question-details">
+        <span className="vote-count">
           Votes: <strong data-testid="vote-count">{question.votes}</strong>
         </span>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleVote} data-testid="vote-button" style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}>
+        <div className="button-group">
+          <button onClick={handleVote} data-testid="vote-button" className="vote-button">
             Vote Up
           </button>
           {isAdmin && (
-            <button onClick={handleDelete} data-testid="delete-button" style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px' }}>
+            <button onClick={handleDelete} data-testid="delete-button" className="delete-button">
               Delete
             </button>
           )}

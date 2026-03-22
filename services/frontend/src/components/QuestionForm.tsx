@@ -1,6 +1,7 @@
 // /frontend/src/components/QuestionForm.tsx
 import React, { useState } from 'react';
 import { submitQuestion } from '../api/sessionApi.ts';
+import './QuestionForm.css';
 
 interface QuestionFormProps {
   sessionId: string;
@@ -28,7 +29,7 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ margin: '20px 0', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
+    <form onSubmit={handleSubmit} className="question-form">
       <h3>Submit a Question</h3>
       <input
         type="text"
@@ -36,9 +37,9 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
         onChange={(e) => setText(e.target.value)}
         placeholder="Type your question here..."
         disabled={loading}
-        style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+        className="question-input"
       />
-      <button type="submit" disabled={loading} style={{ padding: '10px 20px', cursor: 'pointer' }}>
+      <button type="submit" disabled={loading} className="submit-button">
         {loading ? 'Submitting...' : 'Submit Question'}
       </button>
     </form>
