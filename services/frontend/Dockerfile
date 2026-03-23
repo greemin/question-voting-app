@@ -18,6 +18,7 @@ FROM nginx:stable-alpine
 
 # Copy the built files from the builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/favicon.ico /usr/share/nginx/html/favicon.ico
 
 # Copy the custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
