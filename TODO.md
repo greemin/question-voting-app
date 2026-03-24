@@ -78,9 +78,11 @@ This document outlines the development plan for the application. Phases are orga
 
 *This phase focuses on improving the user experience and visual design.*
 
--   [ ] **UI Redesign & Component Library**
-    -   Overhaul the visual design for a modern, mobile-first experience.
-    -   **Action**: Adopt a React component library like **Material-UI (MUI)**, **Chakra UI**, or **Mantine** to standardize components and accelerate development.
+-   [.] **UI Redesign (Copy-Paste Components)**
+    -   Overhaul the visual design for a modern, mobile-first experience without adding heavy dependencies.
+    -   [x] **Action (Frontend)**: Implement basic grid layout using media queries for breakpoints.
+    -   **Action (Frontend)**: Add theming via React.Context to make layout experimentation easier.
+    -   **Action (Frontend)**: Settle on default theme for the app.
 
 -   [ ] **Implement Confirmation Modals**
     -   Prevent accidental destructive actions.
@@ -89,10 +91,11 @@ This document outlines the development plan for the application. Phases are orga
 -   [ ] **Add "Copy Link" Button**
     -   Make it easier for users to share the session URL.
     -   **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
+    -   **Action**: Add QR code links to session.
 
--   [ ] **Improve Input Validation & Error Handling**
+-   [o] **Improve Input Validation & Error Handling**
     -   Provide better feedback to the user.
-    -   **Action (Frontend)**: Add basic input validation (e.g., max question length) to the `QuestionForm`.
+    -   [x] **Action (Frontend)**: Add basic input validation (e.g., max question length) to the `QuestionForm`.
     -   **Action (Frontend)**: Implement a toast notification system (e.g., `react-hot-toast`) to display API errors and other feedback.
 
 ---
@@ -118,7 +121,6 @@ This document outlines the development plan for the application. Phases are orga
 ---
 
 ### 🔮 **Long-Term Goals & Tech Debt**
--   [ ] **Add QR code links to session**
 -   [ ] **Separation of Concerns:** The handlers are directly interacting with the storage layer. In a larger application, it would be better to have a service layer in between to handle business logic.
 -   [ ] **Voter tracking:** The current implementation stores an array of `voterID`s for each question. This could become inefficient for questions with many votes. A different data structure might be better, or a separate collection/table to track votes.
 -   [ ] **Insecure Direct Object Reference (IDOR):** The URL parsing is done by splitting the path by `/`. This is fragile and can lead to bugs if the URL format changes. For example, `GET /api/session/{sessionId}/questions`, `parts[3]` is assumed to be the `sessionId`. A better approach would be to use a router that supports path parameters, like `gorilla/mux` or `chi`.
