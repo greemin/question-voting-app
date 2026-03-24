@@ -22,6 +22,7 @@ function VotingSessionPage(): JSX.Element {
     try {
       if (!sessionId) return;
       const data = await getQuestions(sessionId);
+      data.sort((a, b) => b.votes - a.votes);
       setQuestions(data);
       setLoading(false);
     } catch (error: any) {
@@ -126,32 +127,28 @@ function VotingSessionPage(): JSX.Element {
 
   return (
     <div className="voting-session-container">
-      <h1 className="session-title">
-        {sessionTitle}
+      <div className="title-container">
+        <h1 className="session-title">
+          {sessionTitle?.toUpperCase()}
+        </h1>
         <a
-          href={window.location.href}
-          className="session-id"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+            href={window.location.href}
+            className="session-id"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {link}
           </a>
-        </h1>
+      </div>
       
-      {isAdmin && (
-        <div className="admin-panel">
-          <p className="admin-panel-title">Admin Panel</p>
-          <button 
-            onClick={handleEndSession}
-            className="end-session-button"
-          >
+      { isAdmin && 
+          <button onClick={handleEndSession} className="end-session-button">
             End Session & Delete Data
-          </button>
-        </div>
-      )}
+          </button> 
+      }
 
       <QuestionForm sessionId={sessionId!} onQuestionSubmit={fetchQuestions} />
-
+      
       <h2>Questions ({questions.length})</h2>
       {questions.length === 0 ? (
         <p>No questions submitted yet. Be the first!</p>

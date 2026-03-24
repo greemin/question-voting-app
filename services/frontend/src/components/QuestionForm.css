@@ -13,6 +13,10 @@
   border-radius: 4px;
 }
 
+.character-count {  
+  color: #666;
+}
+
 .submit-button {
   padding: 10px 20px;
   cursor: pointer;

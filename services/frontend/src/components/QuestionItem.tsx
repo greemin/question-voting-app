@@ -21,9 +21,7 @@ function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionI
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this question?")) return;
-    
+  const handleDelete = async () => {    
     try {
       await deleteQuestion(sessionId, question.id);
       // Note: We don't necessarily need to refresh the list manually here 

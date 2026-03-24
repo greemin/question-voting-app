@@ -11,6 +11,7 @@ interface QuestionFormProps {
 function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.Element {
   const [text, setText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const QUESTION_MAX_LENGTH = 500;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +19,7 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
 
     setLoading(true);
     try {
-      await submitQuestion(sessionId, text);
+      await submitQuestion(sessionId, text.trim().slice(0, QUESTION_MAX_LENGTH));
       setText('');
       onQuestionSubmit(); // Refresh the list
     } catch (error: any) {
@@ -38,7 +39,9 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
         placeholder="Type your question here..."
         disabled={loading}
         className="question-input"
+        maxLength={QUESTION_MAX_LENGTH}
       />
+      { text.length > 0 && <div className="character-count">{text.length}/{QUESTION_MAX_LENGTH}</div> }
       <button type="submit" disabled={loading} className="submit-button">
         {loading ? 'Submitting...' : 'Submit Question'}
       </button>
