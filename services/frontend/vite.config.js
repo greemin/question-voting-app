@@ -11,6 +11,8 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Listen on all available network interfaces
     port: 5173, // Default Vite port
+    allowedHosts: typeof process.env.VITE_ALLOWED_HOSTS === 'string' ? [...process.env.VITE_ALLOWED_HOSTS.split(',')] :
+      [],
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL, // Proxy to Go backend service

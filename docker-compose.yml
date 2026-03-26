@@ -27,13 +27,14 @@ services:
       - ENV=${ENV}
       - NODE_ENV=${ENV}
       - VITE_API_URL=${BACKEND_API_URL}
+      - VITE_ALLOWED_HOSTS=${ALLOWED_HOSTS}
     depends_on:
       - backend
     networks:
       - frontend-network
 
   mongo:
-    image: mongo:latest
+    image: mongo:${MONGO_VERSION:-latest}
     command: ["--auth", "--quiet"]
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
@@ -45,10 +46,12 @@ services:
     networks:
       - backend-network
     healthcheck:
-      test: ["CMD-SHELL", "mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --eval \"db.adminCommand('ping')\""]
+      test: ["CMD-SHELL", "${MONGO_SHELL_COMMAND:-mongosh} -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --eval \"db.adminCommand('ping')\""]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: ${MONGO_HEALTHCHECK_START_PERIOD:-0s}
+
 
 volumes:
   mongo-data:
