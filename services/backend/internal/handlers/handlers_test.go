@@ -209,6 +209,7 @@ func TestServeWS(t *testing.T) {
 	t.Run("InvalidPath", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/websock", nil)
+		r.SetPathValue("session_id", sessionID)
 		api.ServeWS(w, r)
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
@@ -218,6 +219,7 @@ func TestServeWS(t *testing.T) {
 	t.Run("ValidPathButNotWebSocket", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/ws", nil)
+		r.SetPathValue("session_id", sessionID)
 		api.ServeWS(w, r)
 
 		// Since the request doesn't have proper websocket upgrade headers,
@@ -237,6 +239,7 @@ func TestGetSessionHandler(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/questions", nil)
+		r.SetPathValue("session_id", sessionID)
 		api.GetSessionHandler(w, r)
 
 		if w.Code != http.StatusOK {
@@ -272,6 +275,7 @@ func TestSubmitQuestionHandler(t *testing.T) {
 		body := `{"text": "A new valid question?"}`
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
 		api.SubmitQuestionHandler(w, r)
 		if w.Code != http.StatusCreated {
 			t.Errorf("Expected status %d, got %d", http.StatusCreated, w.Code)
@@ -288,6 +292,7 @@ func TestSubmitQuestionHandler(t *testing.T) {
 		body := `{"text": "A question for a closed session?"}`
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
 		api.SubmitQuestionHandler(w, r)
 		if w.Code != http.StatusForbidden {
 			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
@@ -308,6 +313,8 @@ func TestVoteQuestionHandler(t *testing.T) {
 		path := fmt.Sprintf("/api/session/%s/questions/%s/vote", sessionID, questionID)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodPut, path, nil)
+		r.SetPathValue("session_id", sessionID)
+		r.SetPathValue("question_id", questionID)
 		r.AddCookie(voterCookie)
 		api.VoteQuestionHandler(w, r)
 		if w.Code != http.StatusOK {
@@ -325,6 +332,8 @@ func TestVoteQuestionHandler(t *testing.T) {
 		path := fmt.Sprintf("/api/session/%s/questions/%s/vote", sessionID, questionID)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodPut, path, nil)
+		r.SetPathValue("session_id", sessionID)
+		r.SetPathValue("question_id", questionID)
 		r.AddCookie(&http.Cookie{Name: "userSessionId", Value: "u1"}) // u1 already voted in mock
 		api.VoteQuestionHandler(w, r)
 		if w.Code != http.StatusForbidden {
@@ -345,6 +354,8 @@ func TestDeleteQuestionHandler(t *testing.T) {
 		path := fmt.Sprintf("/api/session/%s/questions/%s", sessionID, questionID)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodDelete, path, nil)
+		r.SetPathValue("session_id", sessionID)
+		r.SetPathValue("question_id", questionID)
 		r.Header.Set("Authorization", "Bearer "+adminToken)
 		api.DeleteQuestionHandler(w, r)
 		if w.Code != http.StatusNoContent {
@@ -362,6 +373,8 @@ func TestDeleteQuestionHandler(t *testing.T) {
 		path := fmt.Sprintf("/api/session/%s/questions/%s", sessionID, questionID)
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodDelete, path, nil)
+		r.SetPathValue("session_id", sessionID)
+		r.SetPathValue("question_id", questionID)
 		r.Header.Set("Authorization", "Bearer invalid-token")
 		api.DeleteQuestionHandler(w, r)
 		if w.Code != http.StatusForbidden {
@@ -380,6 +393,7 @@ func TestEndSessionHandler(t *testing.T) {
 		storer.PreloadSession(createMockSession(sessionID, adminToken, true))
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
+		r.SetPathValue("session_id", sessionID)
 		r.Header.Set("Authorization", "Bearer "+adminToken)
 		api.EndSessionHandler(w, r)
 		if w.Code != http.StatusNoContent {
@@ -395,6 +409,7 @@ func TestEndSessionHandler(t *testing.T) {
 		storer.PreloadSession(createMockSession(sessionID, adminToken, true))
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodDelete, "/api/session/"+sessionID, nil)
+		r.SetPathValue("session_id", sessionID)
 		r.Header.Set("Authorization", "Bearer invalid-token")
 		api.EndSessionHandler(w, r)
 		if w.Code != http.StatusForbidden {
@@ -415,6 +430,7 @@ func TestCheckAdminHandler(t *testing.T) {
 	t.Run("IsAdmin", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
+		r.SetPathValue("session_id", sessionID)
 		r.Header.Set("Authorization", "Bearer "+adminToken)
 		api.CheckAdminHandler(w, r)
 		if w.Code != http.StatusOK {
@@ -430,6 +446,7 @@ func TestCheckAdminHandler(t *testing.T) {
 	t.Run("IsNotAdmin", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/check-admin", nil)
+		r.SetPathValue("session_id", sessionID)
 		r.Header.Set("Authorization", "Bearer wrong-token")
 		api.CheckAdminHandler(w, r)
 		if w.Code != http.StatusOK {
