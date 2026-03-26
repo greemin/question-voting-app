@@ -112,6 +112,11 @@ This document outlines the development plan for the application. Phases are orga
     -   Write integration tests for the `MongoStorage` implementation.
     -   **Action**: Use Testcontainers to spin up an ephemeral MongoDB database during testing to ensure queries and connection logic work correctly.
 
+-   [ ] **Load Testing DEV**
+    -   Write k6 Load tests for dev enviroment context
+    -   **Action**: Write load test for scenarios of multiple running sessions with multiple users.
+    -   **Action**: Execute and evaluate tests and make descions about performance aims.
+
 -   [ ] **Set Up CI/CD Pipeline**
     -   Automate testing and deployment.
     -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
@@ -121,7 +126,9 @@ This document outlines the development plan for the application. Phases are orga
 ---
 
 ### 🔮 **Long-Term Goals & Tech Debt**
+
 -   [ ] **Separation of Concerns:** The handlers are directly interacting with the storage layer. In a larger application, it would be better to have a service layer in between to handle business logic.
 -   [ ] **Voter tracking:** The current implementation stores an array of `voterID`s for each question. This could become inefficient for questions with many votes. A different data structure might be better, or a separate collection/table to track votes.
 -   [ ] **Insecure Direct Object Reference (IDOR):** The URL parsing is done by splitting the path by `/`. This is fragile and can lead to bugs if the URL format changes. For example, `GET /api/session/{sessionId}/questions`, `parts[3]` is assumed to be the `sessionId`. A better approach would be to use a router that supports path parameters, like `gorilla/mux` or `chi`.
 -   [ ] **Missing Input Validation:** In `CreateSessionHandler`, the `req.SessionID` is checked for length, but not for character validity. The `slugify` function handles some of it, but it's better to be strict about what's allowed. In `SubmitQuestionHandler`, the question text length is checked, but not for malicious content (e.g., XSS). While the frontend is React (which helps prevent XSS), it's good practice to have defense in depth and validate/sanitize on the backend as well.
+-   [ ] **Load Testing:** Write and execute (k6?) load tests on prod enviroment. Test should test how many sessions and users can run concurrently. Decision needs to be made about performance aims. Also resilience against basic DDOS attacks should be tested.
