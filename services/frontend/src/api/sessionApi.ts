@@ -1,5 +1,5 @@
 // /frontend/src/api/sessionApi.ts
-import { Question } from '../models/Question';
+import { SessionData } from '../models/SessionData';
 
 const API_BASE = '/api/session';
 
@@ -31,8 +31,8 @@ export const createSession = async (sessionId?: string): Promise<{ sessionId: st
   return data;
 };
 
-export const getQuestions = async (sessionId: string): Promise<Question[]> => {
-  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions`);
+export const getSessionData = async (sessionId: string): Promise<SessionData> => {
+  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`);
   return handleResponse(response);
 };
 

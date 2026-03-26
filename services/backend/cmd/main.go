@@ -10,7 +10,6 @@ import (
 	"question-voting-app/internal/handlers"
 	"question-voting-app/internal/storage"
 	"question-voting-app/internal/ws"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -59,7 +58,7 @@ func main() {
 }
 
 // SetupRouter configures the API routes and applies CORS middleware.
-func SetupRouter(api *handlers.API, corsOrigins string) *http.ServeMux {
+func SetupRouter(api *handlers.API, corsOrigins string) http.Handler {
 	// --- CORS Middleware ---
 	corsHandler := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,34 +77,20 @@ func SetupRouter(api *handlers.API, corsOrigins string) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/api/session", corsHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			api.CreateSessionHandler(w, r)
-		} else {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})))
+	// Session Management
+	mux.HandleFunc("POST /api/session", api.CreateSessionHandler)
+	mux.HandleFunc("GET /api/session/{session_id}", api.GetSessionHandler)
+	mux.HandleFunc("DELETE /api/session/{session_id}", api.EndSessionHandler)
 
-	mux.Handle("/api/session/", corsHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		if r.Method == http.MethodGet && strings.HasSuffix(path, "/check-admin") {
-			api.CheckAdminHandler(w, r)
-		} else if r.Method == http.MethodGet && strings.HasSuffix(path, "/questions") {
-			api.GetQuestionsHandler(w, r)
-		} else if r.Method == http.MethodPost && strings.HasSuffix(path, "/questions") {
-			api.SubmitQuestionHandler(w, r)
-		} else if r.Method == http.MethodPut && strings.HasSuffix(path, "/vote") {
-			api.VoteQuestionHandler(w, r)
-		} else if r.Method == http.MethodDelete && strings.Contains(path, "/questions/") {
-			api.DeleteQuestionHandler(w, r)
-		} else if r.Method == http.MethodGet && strings.HasSuffix(path, "/ws") {
-			api.ServeWS(w, r)
-		} else if r.Method == http.MethodDelete && strings.Count(path, "/") == 3 {
-			api.EndSessionHandler(w, r)
-		} else {
-			http.Error(w, "Not found or Method not allowed", http.StatusNotFound)
-		}
-	})))
+	// Session Sub-resources
+	mux.HandleFunc("GET /api/session/{session_id}/check-admin", api.CheckAdminHandler)
+	mux.HandleFunc("GET /api/session/{session_id}/ws", api.ServeWS)
 
-	return mux
+	// Questions & Voting
+	mux.HandleFunc("POST /api/session/{session_id}/questions", api.SubmitQuestionHandler)
+	mux.HandleFunc("DELETE /api/session/{session_id}/questions/{question_id}", api.DeleteQuestionHandler)
+	mux.HandleFunc("PUT /api/session/{session_id}/questions/{question_id}/vote", api.VoteQuestionHandler)
+
+	// Return the mux wrapped in the CORS middleware
+	return corsHandler(mux)
 }

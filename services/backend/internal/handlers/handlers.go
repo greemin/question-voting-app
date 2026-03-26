@@ -183,15 +183,10 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetQuestionsHandler retrieves and sorts all questions for a session.
-// GET /api/session/{sessionId}/questions
-func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 4 || parts[len(parts)-1] != "questions" {
-		http.Error(w, "Invalid path format", http.StatusBadRequest)
-		return
-	}
-	sessionID := parts[3]
+// GetSessionHandler retrieves the full session data (excluding sensitive info).
+// GET /api/session/{session_id}
+func (a *API) GetSessionHandler(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("session_id")
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
@@ -203,14 +198,29 @@ func (a *API) GetQuestionsHandler(w http.ResponseWriter, r *http.Request) {
 		return sessionData.Questions[i].Votes > sessionData.Questions[j].Votes
 	})
 
+	// Omit AdminToken for security
+	response := struct {
+		SessionID    string            `json:"sessionId"`
+		SessionTitle string            `json:"sessionTitle"`
+		IsActive     bool              `json:"isActive"`
+		CreatedAt    time.Time         `json:"createdAt"`
+		Questions    []models.Question `json:"questions"`
+	}{
+		SessionID:    sessionData.SessionID,
+		SessionTitle: sessionData.SessionTitle,
+		IsActive:     sessionData.IsActive,
+		CreatedAt:    sessionData.CreatedAt,
+		Questions:    sessionData.Questions,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(sessionData.Questions)
+	json.NewEncoder(w).Encode(response)
 }
 
 // SubmitQuestionHandler adds a new question to the session.
-// POST /api/session/{sessionId}/questions
+// POST /api/session/{session_id}/questions
 func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
-	sessionID := strings.Split(r.URL.Path, "/")[3]
+	sessionID := r.PathValue("session_id")
 	a.getUserSessionID(w, r) // Ensure user has a session cookie
 
 	var submission models.QuestionSubmission
@@ -265,15 +275,11 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // VoteQuestionHandler increments the vote count for a question.
-// PUT /api/session/{sessionId}/questions/{questionId}/vote
+// PUT /api/session/{session_id}/questions/{question_id}/vote
 func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 6 || parts[len(parts)-1] != "vote" {
-		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
-		return
-	}
-	sessionID := parts[3]
-	questionID := parts[5]
+	sessionID := r.PathValue("session_id")
+	questionID := r.PathValue("question_id")
+
 	userID := a.getUserSessionID(w, r)
 
 	if _, err := uuid.Parse(questionID); err != nil {
@@ -330,15 +336,10 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteQuestionHandler allows the admin to delete a question.
-// DELETE /api/session/{sessionId}/questions/{questionId}
+// DELETE /api/session/{session_id}/questions/{question_id}
 func (a *API) DeleteQuestionHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 6 {
-		http.Error(w, "Invalid path parameters", http.StatusBadRequest)
-		return
-	}
-	sessionID := parts[3]
-	questionID := parts[5]
+	sessionID := r.PathValue("session_id")
+	questionID := r.PathValue("question_id")
 
 	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
@@ -391,14 +392,9 @@ func (a *API) DeleteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // EndSessionHandler allows the admin to end the session and delete the file.
-// DELETE /api/session/{sessionId}
+// DELETE /api/session/{session_id}
 func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 4 {
-		http.Error(w, "Invalid session ID in path", http.StatusBadRequest)
-		return
-	}
-	sessionID := parts[3]
+	sessionID := r.PathValue("session_id")
 
 	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
@@ -433,14 +429,9 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CheckAdminHandler checks if the current user holds the secret admin token.
-// GET /api/session/{sessionId}/check-admin
+// GET /api/session/{session_id}/check-admin
 func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 4 {
-		http.Error(w, "Invalid session ID in path", http.StatusBadRequest)
-		return
-	}
-	sessionID := parts[3]
+	sessionID := r.PathValue("session_id")
 
 	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
@@ -459,14 +450,9 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServeWS handles WebSocket requests from the frontend.
-// GET /api/session/{sessionId}/ws
+// GET /api/session/{session_id}/ws
 func (a *API) ServeWS(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 4 || parts[len(parts)-1] != "ws" {
-		http.Error(w, "Invalid path format", http.StatusBadRequest)
-		return
-	}
-	sessionID := parts[3]
+	sessionID := r.PathValue("session_id")
 
 	// Ensure the session exists before allowing a websocket connection
 	_, err := a.Storer.LoadSessionData(r.Context(), sessionID)

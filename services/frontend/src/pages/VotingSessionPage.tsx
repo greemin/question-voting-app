@@ -1,7 +1,7 @@
 // /frontend/src/pages/VotingSessionPage.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getQuestions, endSession, checkAdminStatus, createSessionWebSocket } from '../api/sessionApi.ts';
+import { getSessionData, endSession, checkAdminStatus, createSessionWebSocket } from '../api/sessionApi.ts';
 import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
 import { Question } from '../models/Question';
@@ -13,20 +13,18 @@ function VotingSessionPage(): JSX.Element {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const sessionTitle = useMemo<string>(() => {
-    return localStorage.getItem(`sessionTitle_${sessionId}`);
+  const [sessionTitle, setSessionTitle] = useState<string>('');
 
-  }, [sessionId]);
-
-  const fetchQuestions = useCallback(async () => {
+  const fetchSession = useCallback(async () => {
     try {
       if (!sessionId) return;
-      const data = await getQuestions(sessionId);
-      data.sort((a, b) => b.votes - a.votes);
-      setQuestions(data);
+      const data = await getSessionData(sessionId);
+      data.questions.sort((a: Question, b: Question) => b.votes - a.votes);
+      setQuestions(data.questions);
+      setSessionTitle(data.sessionTitle);
       setLoading(false);
     } catch (error: any) {
-      console.error('Failed to fetch questions:', error);
+      console.error('Failed to fetch session data:', error);
       alert(error.message);
       // If session is closed (404/403), redirect home or show message
       if (error.message.includes('not found')) {
@@ -64,8 +62,8 @@ function VotingSessionPage(): JSX.Element {
     // Run the verification when the component mounts
     verifyAdmin();
 
-    // Fetch initial questions
-    fetchQuestions();
+    // Fetch initial session data
+    fetchSession();
 
     if (!sessionId) return;
 
@@ -119,7 +117,7 @@ function VotingSessionPage(): JSX.Element {
         ws.close();
       }
     };
-  }, [sessionId, fetchQuestions, navigate]);
+  }, [sessionId, fetchSession, navigate]);
 
 
   if (loading) return <div className="loading-session">Loading session...</div>;
@@ -147,7 +145,7 @@ function VotingSessionPage(): JSX.Element {
           </button> 
       }
 
-      <QuestionForm sessionId={sessionId!} onQuestionSubmit={fetchQuestions} />
+      <QuestionForm sessionId={sessionId!} onQuestionSubmit={fetchSession} />
       
       <h2>Questions ({questions.length})</h2>
       {questions.length === 0 ? (
@@ -160,7 +158,7 @@ function VotingSessionPage(): JSX.Element {
               sessionId={sessionId!} 
               question={q} 
               isAdmin={isAdmin}
-              onVoteSuccess={fetchQuestions} // Re-fetch to update votes and sort
+              onVoteSuccess={fetchSession} // Re-fetch to update votes and sort
             />
           ))}
         </div>
