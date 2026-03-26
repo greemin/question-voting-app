@@ -6,6 +6,7 @@ import { vi, Mock } from 'vitest';
 import VotingSessionPage from '../../src/pages/VotingSessionPage';
 import * as sessionApi from '../../src/api/sessionApi';
 import { Question } from '../../src/models/Question';
+import { SessionData } from '../../src/models/SessionData';
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -20,7 +21,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../src/api/sessionApi', () => ({
   createSession: vi.fn(),
-  getQuestions: vi.fn(),
+  getSessionData: vi.fn(),
   submitQuestion: vi.fn(),
   voteQuestion: vi.fn(),
   deleteQuestion: vi.fn(),
@@ -35,10 +36,16 @@ vi.mock('../../src/api/sessionApi', () => ({
   })),
 }));
 
-const mockQuestions: Question[] = [
-  { id: 'q1', session_id: 'test-session', text: 'Question 1', votes: 3, voters: [] },
-  { id: 'q2', session_id: 'test-session', text: 'Question 2', votes: 5, voters: [] },
-];
+const mockSessionData: SessionData = {
+  sessionTitle: 'Test Session',
+  sessionId: 'test-session',
+  createdAt: new Date().toDateString(),
+  isActive: true,
+  questions: [  
+    { id: 'q1', session_id: 'test-session', text: 'Question 1', votes: 3, voters: [] },
+    { id: 'q2', session_id: 'test-session', text: 'Question 2', votes: 5, voters: [] },
+  ] 
+};
 
 describe('VotingSessionPage', () => {
   afterEach(() => {
@@ -46,7 +53,7 @@ describe('VotingSessionPage', () => {
   });
 
   it('shows loading state initially, then fetches and displays questions', async () => {
-    (sessionApi.getQuestions as Mock).mockResolvedValue(mockQuestions);
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
     (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: true });
 
     render(
@@ -63,7 +70,7 @@ describe('VotingSessionPage', () => {
   
   it('displays admin panel and handles ending session', async () => {
     window.confirm = vi.fn(() => true);
-    (sessionApi.getQuestions as Mock).mockResolvedValue(mockQuestions);
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
     (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: true });
     (sessionApi.endSession as Mock).mockResolvedValue(null);
 
@@ -81,30 +88,4 @@ describe('VotingSessionPage', () => {
     expect(window.confirm).toHaveBeenCalled();
     expect(sessionApi.endSession).toHaveBeenCalledWith('test-session');
   });
-
-  /* Disabled because we are gonna switch to sockets soon
-  it('polls for new questions', async () => {
-    vi.useFakeTimers();
-    const getQuestionsMock = vi.spyOn(sessionApi, 'getQuestions').mockResolvedValue(mockQuestions);
-    vi.spyOn(sessionApi, 'checkAdminStatus').mockResolvedValue({ isAdmin: true });
-
-    render(
-      <BrowserRouter>
-        <VotingSessionPage />
-      </BrowserRouter>
-    );
-    
-    // Wait for initial render and fetch
-    await screen.findByText('Question 1');
-    expect(getQuestionsMock).toHaveBeenCalledTimes(1);
-
-    // Advance timers to trigger polling
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-    });
-    
-    expect(getQuestionsMock).toHaveBeenCalledTimes(2);
-    
-    vi.useRealTimers();
-  });*/
 });
