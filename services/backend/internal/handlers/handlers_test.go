@@ -228,7 +228,7 @@ func TestServeWS(t *testing.T) {
 	})
 }
 
-func TestGetQuestionsHandler(t *testing.T) {
+func TestGetSessionHandler(t *testing.T) {
 	api, storer := setupTestAPI()
 	sessionID := "my-test-session"
 	adminID := "admin-1"
@@ -237,17 +237,17 @@ func TestGetQuestionsHandler(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/"+sessionID+"/questions", nil)
-		api.GetQuestionsHandler(w, r)
+		api.GetSessionHandler(w, r)
 
 		if w.Code != http.StatusOK {
 			t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
 		}
-		var questions []models.Question
-		json.Unmarshal(w.Body.Bytes(), &questions)
-		if len(questions) != 2 {
-			t.Fatalf("Expected 2 questions, got %d", len(questions))
+		var sessionData models.SessionData
+		json.Unmarshal(w.Body.Bytes(), &sessionData)
+		if len(sessionData.Questions) != 2 {
+			t.Fatalf("Expected 2 questions, got %d", len(sessionData.Questions))
 		}
-		if questions[0].Votes < questions[1].Votes {
+		if sessionData.Questions[0].Votes < sessionData.Questions[1].Votes {
 			t.Error("Questions were not sorted correctly by votes")
 		}
 	})
@@ -255,7 +255,7 @@ func TestGetQuestionsHandler(t *testing.T) {
 	t.Run("NotFound", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/api/session/non-existent-session/questions", nil)
-		api.GetQuestionsHandler(w, r)
+		api.GetSessionHandler(w, r)
 		if w.Code != http.StatusNotFound {
 			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
 		}
