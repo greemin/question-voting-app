@@ -14,7 +14,7 @@ function HomePage(): JSX.Element {
     try {
       const data = await createSession(customSlug);
       // data.sessionId is returned
-      navigate(`/votingSession/${data.sessionId}`);
+      navigate(`/${data.sessionId}`);
     } catch (error: any) {
       alert(`Failed to create session: ${error.message}`);
     } finally {

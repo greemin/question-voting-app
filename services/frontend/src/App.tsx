@@ -9,7 +9,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       {/* Dynamic route for the voting session ID */}
-      <Route path="/votingSession/:sessionId" element={<VotingSessionPage />} />
+      <Route path="/:sessionId" element={<VotingSessionPage />} />
     </Routes>
   );
 }
