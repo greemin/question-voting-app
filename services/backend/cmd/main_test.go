@@ -44,7 +44,7 @@ func TestSetupRouter_Routes(t *testing.T) {
 	}{
 		{"Create Session", http.MethodPost, "/api/session", http.StatusCreated},
 		{"Root Wrong Method", http.MethodGet, "/api/session", http.StatusMethodNotAllowed},
-		{"Get Session (Not Found Session)", http.MethodGet, "/api/session/123", http.StatusNotFound},
+		{"Get Session (New Session)", http.MethodGet, "/api/session/123", http.StatusCreated},
 		{"End Session (No Content/Not Found silently succeeds)", http.MethodDelete, "/api/session/123", http.StatusNoContent},
 		{"Delete Question (Not Found Session)", http.MethodDelete, "/api/session/123/questions/456", http.StatusNotFound},
 		{"Check Admin", http.MethodGet, "/api/session/123/check-admin", http.StatusOK},
@@ -54,6 +54,7 @@ func TestSetupRouter_Routes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			storer.Clear()
 			var body io.Reader
 			if tt.name == "Create Session" {
 				body = strings.NewReader("{}")

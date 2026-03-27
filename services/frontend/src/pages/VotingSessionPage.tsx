@@ -18,18 +18,28 @@ function VotingSessionPage(): JSX.Element {
   const fetchSession = useCallback(async () => {
     try {
       if (!sessionId) return;
-      const data = await getSessionData(sessionId);
+      setLoading(true);
+      const data = await getSessionData(sessionId); // This may contain an adminToken on creation
+
+      // If an adminToken is returned, it means a new session was just created
+      // and this user is the admin. Otherwise, we check the status separately.
+      if (data.adminToken) {
+        setIsAdmin(true);
+      } else {
+        const status = await checkAdminStatus(sessionId);
+        setIsAdmin(status.isAdmin);
+      }
+
       data.questions.sort((a: Question, b: Question) => b.votes - a.votes);
       setQuestions(data.questions);
       setSessionTitle(data.sessionTitle);
-      setLoading(false);
     } catch (error: any) {
       console.error('Failed to fetch session data:', error);
       alert(error.message);
-      // If session is closed (404/403), redirect home or show message
       if (error.message.includes('not found')) {
         navigate('/');
       }
+    } finally {
       setLoading(false);
     }
   }, [sessionId, navigate]);
@@ -47,21 +57,7 @@ function VotingSessionPage(): JSX.Element {
     }
   };
 
-  // Update this useEffect hook to call the backend check
   useEffect(() => {
-    async function verifyAdmin() {
-      try {
-        if (!sessionId) return;
-        const status = await checkAdminStatus(sessionId);
-        setIsAdmin(status.isAdmin);
-      } catch (error) {
-        console.error("Failed to verify admin status:", error);
-      }
-    }
-
-    // Run the verification when the component mounts
-    verifyAdmin();
-
     // Fetch initial session data
     fetchSession();
 
@@ -145,7 +141,10 @@ function VotingSessionPage(): JSX.Element {
           </button> 
       }
 
-      <QuestionForm sessionId={sessionId!} onQuestionSubmit={fetchSession} />
+      <QuestionForm
+        sessionId={sessionId!}
+        onQuestionSubmit={() => {}} /* Websocket handles update */
+      />
       
       <h2>Questions ({questions.length})</h2>
       {questions.length === 0 ? (
@@ -158,7 +157,7 @@ function VotingSessionPage(): JSX.Element {
               sessionId={sessionId!} 
               question={q} 
               isAdmin={isAdmin}
-              onVoteSuccess={fetchSession} // Re-fetch to update votes and sort
+              onVoteSuccess={() => {}} /* Websocket handles update */
             />
           ))}
         </div>

@@ -6,4 +6,5 @@ export interface SessionData {
   isActive: boolean;
   createdAt: string;
   questions: Question[];
+  adminToken?: string;
 }

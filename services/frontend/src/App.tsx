@@ -8,7 +8,6 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      {/* Dynamic route for the voting session ID */}
       <Route path="/:sessionId" element={<VotingSessionPage />} />
     </Routes>
   );

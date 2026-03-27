@@ -33,7 +33,19 @@ export const createSession = async (sessionId?: string): Promise<{ sessionId: st
 
 export const getSessionData = async (sessionId: string): Promise<SessionData> => {
   const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`);
-  return handleResponse(response);
+
+  const data = await handleResponse(response) as SessionData;
+  const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+  if (!adminToken) {
+    if (data.adminToken) {
+      localStorage.setItem(`adminToken_${data.sessionId}`, data.adminToken);
+    }
+    if (data.sessionTitle) {
+      localStorage.setItem(`sessionTitle_${data.sessionId}`, data.sessionTitle);
+    }
+  }
+
+  return data;
 };
 
 export const submitQuestion = async (sessionId: string, text: string): Promise<null> => {

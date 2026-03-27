@@ -8,6 +8,8 @@ import * as sessionApi from '../../src/api/sessionApi';
 import { Question } from '../../src/models/Question';
 import { SessionData } from '../../src/models/SessionData';
 
+const mockNavigate = vi.fn();
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -15,7 +17,7 @@ vi.mock('react-router-dom', async () => {
     useParams: () => ({
       sessionId: 'test-session',
     }),
-    useNavigate: () => vi.fn(),
+    useNavigate: () => mockNavigate,
   };
 });
 
@@ -48,6 +50,10 @@ const mockSessionData: SessionData = {
 };
 
 describe('VotingSessionPage', () => {
+  beforeEach(() => {
+    window.alert = vi.fn();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });

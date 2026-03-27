@@ -12,6 +12,8 @@ import (
 	"question-voting-app/internal/models"
 	"question-voting-app/internal/testutil"
 	"question-voting-app/internal/ws"
+
+	"golang.org/x/text/language"
 )
 
 // --- Test Setup Helper ---
@@ -64,6 +66,28 @@ func TestSlugify(t *testing.T) {
 			actual := slugify(tt.input)
 			if actual != tt.expected {
 				t.Errorf("slugify(%q): expected %q, got %q", tt.input, tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestDeslugify(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"Normal", "hello-world", "Hello World"},
+		{"Single word", "session", "Session"},
+		{"With numbers", "session-123", "Session 123"},
+		{"From slugify", "my-awesome-q-and-a", "My Awesome Q And A"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := deslugify(tt.input, language.English)
+			if actual != tt.expected {
+				t.Errorf("deslugify(%q): expected %q, got %q", tt.input, tt.expected, actual)
 			}
 		})
 	}
@@ -255,12 +279,38 @@ func TestGetSessionHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("NotFound", func(t *testing.T) {
+	t.Run("CreatesNewSessionIfNotFound", func(t *testing.T) {
+		storer.Clear() // Make sure no sessions exist
+		newSessionID := "a-new-session"
 		w := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodGet, "/api/session/non-existent-session/questions", nil)
+		r := httptest.NewRequest(http.MethodGet, "/api/session/"+newSessionID, nil)
+		r.SetPathValue("session_id", newSessionID)
+
 		api.GetSessionHandler(w, r)
-		if w.Code != http.StatusNotFound {
-			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("Expected status %d, got %d", http.StatusCreated, w.Code)
+		}
+
+		var resp map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("Failed to decode response: %v", err)
+		}
+
+		if resp["sessionId"] != newSessionID {
+			t.Errorf("Expected sessionId %q, got %q", newSessionID, resp["sessionId"])
+		}
+
+		if resp["sessionTitle"] != "A New Session" {
+			t.Errorf("Expected sessionTitle 'A New Session', got %q", resp["sessionTitle"])
+		}
+
+		if resp["adminToken"] == "" || resp["adminToken"] == nil {
+			t.Error("Expected an adminToken to be returned for a new session")
+		}
+
+		if !storer.HasSession(newSessionID) {
+			t.Error("Session was not created in the storer")
 		}
 	})
 }

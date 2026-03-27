@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"net/http"
 	"question-voting-app/internal/models"
@@ -14,6 +16,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -44,6 +49,11 @@ func slugify(s string) string {
 	return s
 }
 
+func deslugify(s string, lang language.Tag) string {
+	s = strings.ReplaceAll(s, "-", " ")
+	return cases.Title(lang).String(s)
+}
+
 func generateRandomString(n int) (string, error) {
 	const letters = "0123456789abcdefghijklmnopqrstuvwxyz"
 	ret := make([]byte, n)
@@ -56,6 +66,24 @@ func generateRandomString(n int) (string, error) {
 	}
 
 	return string(ret), nil
+}
+
+func newSessionData(sessionID, sessionTitle string) *models.SessionData {
+	return &models.SessionData{
+		SessionID:    sessionID,
+		SessionTitle: sessionTitle,
+		AdminToken:   uuid.New().String(),
+		IsActive:     true,
+		CreatedAt:    time.Now(),
+		Questions:    []models.Question{},
+	}
+}
+
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return errors.Is(err, mongo.ErrNoDocuments) || strings.Contains(strings.ToLower(err.Error()), "not found")
 }
 
 // API holds the dependencies for the API handlers.
@@ -95,11 +123,45 @@ func (a *API) getUserSessionID(w http.ResponseWriter, r *http.Request) string {
 	return newID
 }
 
+func (a *API) createSessionWithRetry(ctx context.Context, sessionID, sessionTitle string) (*models.SessionData, error) {
+	newSession := newSessionData(sessionID, sessionTitle)
+
+	// Retry logic for session ID collision
+	for i := 0; i < 5; i++ {
+		err := a.Storer.CreateSessionData(ctx, newSession)
+		if err == nil {
+			return newSession, nil
+		}
+
+		if mongo.IsDuplicateKeyError(err) {
+			// On the first collision, add a suffix. On subsequent collisions, generate a new random ID.
+			if i == 0 {
+				suffix, err := generateRandomString(4)
+				if err != nil {
+					return nil, err
+				}
+				sessionID = sessionID + "-" + suffix
+				newSession.SessionID = sessionID
+			} else {
+				randomString, err := generateRandomString(8)
+				if err != nil {
+					return nil, err
+				}
+				sessionID = randomString
+				newSession.SessionID = sessionID
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	return nil, errors.New("failed to create session after multiple retries")
+}
+
 // CreateSessionHandler creates a new voting session.
 // POST /api/session
 func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
-	a.getUserSessionID(w, r)          // Ensure creator also gets a voting cookie
-	adminToken := uuid.New().String() // Generate secret admin token
+	a.getUserSessionID(w, r) // Ensure creator also gets a voting cookie
 
 	var req models.CreateSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -127,51 +189,10 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 		sessionID = randomString
 	}
 
-	newSession := &models.SessionData{
-		SessionID:    sessionID,
-		SessionTitle: sessionTitle,
-		AdminToken:   adminToken, // Repurposing this field to store the token
-		IsActive:     true,
-		CreatedAt:    time.Now(),
-		Questions:    []models.Question{},
-	}
-
-	// Retry logic for session ID collision
-	for i := 0; i < 5; i++ {
-		err := a.Storer.CreateSessionData(r.Context(), newSession)
-		if err == nil {
-			break // Success
-		}
-
-		if mongo.IsDuplicateKeyError(err) {
-			// On the first collision, add a suffix. On subsequent collisions, generate a new random ID.
-			if i == 0 {
-				suffix, err := generateRandomString(4)
-				if err != nil {
-					http.Error(w, "Failed to generate session ID suffix", http.StatusInternalServerError)
-					return
-				}
-				// Update both the session object AND the original sessionID variable for the next loop
-				sessionID = sessionID + "-" + suffix
-				newSession.SessionID = sessionID
-			} else {
-				randomString, err := generateRandomString(8)
-				if err != nil {
-					http.Error(w, "Failed to generate session ID", http.StatusInternalServerError)
-					return
-				}
-				sessionID = randomString
-				newSession.SessionID = sessionID
-			}
-		} else {
-			http.Error(w, "Failed to create session data", http.StatusInternalServerError)
-			return
-		}
-
-		if i == 4 {
-			http.Error(w, "Failed to create session after multiple retries", http.StatusInternalServerError)
-			return
-		}
+	newSession, err := a.createSessionWithRetry(r.Context(), sessionID, sessionTitle)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -179,7 +200,7 @@ func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"sessionId":    newSession.SessionID,
 		"sessionTitle": newSession.SessionTitle,
-		"adminToken":   adminToken,
+		"adminToken":   newSession.AdminToken,
 	})
 }
 
@@ -190,15 +211,49 @@ func (a *API) GetSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		if isNotFoundError(err) {
+			a.getUserSessionID(w, r) // Ensure creator also gets a voting cookie
+
+			// Determine language from the Accept-Language header
+			tags, _, parseErr := language.ParseAcceptLanguage(r.Header.Get("Accept-Language"))
+			lang := language.English // Fallback to English
+			if parseErr == nil && len(tags) > 0 {
+				lang = tags[0]
+			}
+
+			sessionTitle := deslugify(sessionID, lang)
+
+			newSession, createErr := a.createSessionWithRetry(r.Context(), sessionID, sessionTitle)
+			if createErr != nil {
+				http.Error(w, "Failed to create session", http.StatusInternalServerError)
+				return
+			}
+
+			// Session created successfully by this request.
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			// Return a response with the full session data and admin token.
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"sessionId":    newSession.SessionID,
+				"sessionTitle": newSession.SessionTitle,
+				"adminToken":   newSession.AdminToken,
+				"isActive":     newSession.IsActive,
+				"createdAt":    newSession.CreatedAt,
+				"questions":    newSession.Questions,
+			})
+			return
+		}
+
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
+	// Session existed, or was created concurrently and is now loaded.
 	sort.Slice(sessionData.Questions, func(i, j int) bool {
 		return sessionData.Questions[i].Votes > sessionData.Questions[j].Votes
 	})
 
-	// Omit AdminToken for security
+	// Omit AdminToken for security on normal GETs of existing sessions.
 	response := struct {
 		SessionID    string            `json:"sessionId"`
 		SessionTitle string            `json:"sessionTitle"`
@@ -236,7 +291,11 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		if isNotFoundError(err) {
+			http.Error(w, "Session not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
@@ -289,7 +348,11 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		if isNotFoundError(err) {
+			http.Error(w, "Session not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
@@ -346,7 +409,11 @@ func (a *API) DeleteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		http.Error(w, "Session not found", http.StatusNotFound)
+		if isNotFoundError(err) {
+			http.Error(w, "Session not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
@@ -401,7 +468,11 @@ func (a *API) EndSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		if isNotFoundError(err) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
@@ -438,8 +509,12 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"isAdmin": false})
+		if isNotFoundError(err) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]bool{"isAdmin": false})
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
@@ -457,7 +532,11 @@ func (a *API) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Ensure the session exists before allowing a websocket connection
 	_, err := a.Storer.LoadSessionData(r.Context(), sessionID)
 	if err != nil {
-		http.Error(w, "Session not found", http.StatusNotFound)
+		if isNotFoundError(err) {
+			http.Error(w, "Session not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
 		return
 	}
 
