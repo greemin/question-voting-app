@@ -83,7 +83,10 @@ func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
 	}
-	return errors.Is(err, mongo.ErrNoDocuments) || strings.Contains(strings.ToLower(err.Error()), "not found")
+	errStr := strings.ToLower(err.Error())
+	return errors.Is(err, mongo.ErrNoDocuments) ||
+		strings.Contains(errStr, "not found") ||
+		strings.Contains(errStr, "no document")
 }
 
 // API holds the dependencies for the API handlers.
