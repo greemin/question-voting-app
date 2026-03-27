@@ -87,6 +87,15 @@ func isNotFoundError(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments) || strings.Contains(strings.ToLower(err.Error()), "not found")
 }
 
+func isDuplicateKeyError(err error) bool {
+	if mongo.IsDuplicateKeyError(err) {
+		return true
+	}
+	// Fallback for older mongo versions or weirdly wrapped errors that don't unwrap to a mongo.WriteException.
+	// The error code for a duplicate key error is 11000.
+	return strings.Contains(err.Error(), "E11000")
+}
+
 // API holds the dependencies for the API handlers.
 type API struct {
 	Storer       storage.Storer
@@ -134,7 +143,7 @@ func (a *API) createSessionWithRetry(ctx context.Context, sessionID, sessionTitl
 			return newSession, nil
 		}
 
-		if mongo.IsDuplicateKeyError(err) {
+		if isDuplicateKeyError(err) {
 			// On the first collision, add a suffix. On subsequent collisions, generate a new random ID.
 			if i == 0 {
 				suffix, err := generateRandomString(4)
