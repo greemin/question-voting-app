@@ -6,6 +6,8 @@ import (
 	"question-voting-app/internal/models"
 	"time"
 
+	"errors"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -63,8 +65,8 @@ func (ms *MongoStorage) LoadSessionData(ctx context.Context, sessionID string) (
 	var sessionData models.SessionData
 	err := ms.collection.FindOne(ctx, bson.M{"sessionId": sessionID}).Decode(&sessionData)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("session not found: %s", sessionID)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("session not found: %w", err)
 		}
 		return nil, fmt.Errorf("failed to find session: %w", err)
 	}
