@@ -1,4 +1,5 @@
 // /frontend/src/api/sessionApi.ts
+import toast from 'react-hot-toast';
 import { SessionData } from '../models/SessionData';
 
 const API_BASE = '/api/session';
@@ -13,81 +14,126 @@ const handleResponse = async (response: Response) => {
 };
 
 export const createSession = async (sessionId?: string): Promise<{ sessionId: string; sessionTitle: string; adminToken: string }> => {
-  const response = await fetch(API_BASE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ sessionId }),
-    credentials: 'include',
-  });
-  const data = await handleResponse(response);
-  if (data.adminToken) {
-    localStorage.setItem(`adminToken_${data.sessionId}`, data.adminToken);
-  }
-  if (data.sessionTitle) {
-    localStorage.setItem(`sessionTitle_${data.sessionId}`, data.sessionTitle);
-  }
-  return data;
-};
-
-export const getSessionData = async (sessionId: string): Promise<SessionData> => {
-  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`);
-
-  const data = await handleResponse(response) as SessionData;
-  const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
-  if (!adminToken) {
+  const request = async () => {
+    const response = await fetch(API_BASE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sessionId }),
+      credentials: 'include',
+    });
+    const data = await handleResponse(response);
     if (data.adminToken) {
       localStorage.setItem(`adminToken_${data.sessionId}`, data.adminToken);
     }
     if (data.sessionTitle) {
       localStorage.setItem(`sessionTitle_${data.sessionId}`, data.sessionTitle);
     }
-  }
+    return data;
+  };
 
-  return data;
+  return toast.promise(request(), {
+    loading: 'Creating session...',
+    success: 'Session created!',
+    error: (err) => err.message || 'Failed to create session',
+  });
+};
+
+export const getSessionData = async (sessionId: string): Promise<SessionData> => {
+  try {
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`);
+
+    const data = await handleResponse(response) as SessionData;
+    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+    if (!adminToken) {
+      if (data.adminToken) {
+        localStorage.setItem(`adminToken_${data.sessionId}`, data.adminToken);
+      }
+      if (data.sessionTitle) {
+        localStorage.setItem(`sessionTitle_${data.sessionId}`, data.sessionTitle);
+      }
+    }
+
+    return data;
+  } catch (err: any) {
+    toast.error(err.message || 'Failed to load session');
+    throw err;
+  }
 };
 
 export const submitQuestion = async (sessionId: string, text: string): Promise<null> => {
-  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+  const request = async () => {
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    return handleResponse(response);
+  };
+
+  return toast.promise(request(), {
+    loading: 'Submitting question...',
+    success: 'Question submitted!',
+    error: (err) => err.message || 'Failed to submit question',
   });
-  return handleResponse(response);
 };
 
 export const voteQuestion = async (sessionId: string, questionId: string): Promise<null> => {
-  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/vote`, {
-    method: 'PUT',
+  const request = async () => {
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}/vote`, {
+      method: 'PUT',
+    });
+    return handleResponse(response);
+  };
+
+  return toast.promise(request(), {
+    loading: 'Registering vote...',
+    success: 'Vote registered!',
+    error: (err) => err.message || 'Failed to vote',
   });
-  return handleResponse(response);
 };
 
 export const deleteQuestion = async (sessionId: string, questionId: string): Promise<null> => {
-  const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
-  const headers: Record<string, string> = {};
-  if (adminToken) {
-      headers['Authorization'] = `Bearer ${adminToken}`;
-  }
-  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}`, {
-    method: 'DELETE',
-    headers,
+  const request = async () => {
+    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+    const headers: Record<string, string> = {};
+    if (adminToken) {
+        headers['Authorization'] = `Bearer ${adminToken}`;
+    }
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/questions/${encodeURIComponent(questionId)}`, {
+      method: 'DELETE',
+      headers,
+    });
+    return handleResponse(response);
+  };
+
+  return toast.promise(request(), {
+    loading: 'Deleting question...',
+    success: 'Question deleted!',
+    error: (err) => err.message || 'Failed to delete question',
   });
-  return handleResponse(response);
 };
 
 export const endSession = async (sessionId: string): Promise<null> => {
-  const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
-  const headers: Record<string, string> = {};
-  if (adminToken) {
-      headers['Authorization'] = `Bearer ${adminToken}`;
-  }
-  const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`, {
-    method: 'DELETE',
-    headers,
+  const request = async () => {
+    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+    const headers: Record<string, string> = {};
+    if (adminToken) {
+        headers['Authorization'] = `Bearer ${adminToken}`;
+    }
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+      headers,
+    });
+    return handleResponse(response);
+  };
+
+  return toast.promise(request(), {
+    loading: 'Ending session...',
+    success: 'Session ended!',
+    error: (err) => err.message || 'Failed to end session',
   });
-  return handleResponse(response);
 };
 
 /**
@@ -96,13 +142,18 @@ export const endSession = async (sessionId: string): Promise<null> => {
  * @returns {Promise<boolean>}
  */
 export const checkAdminStatus = async (sessionId: string): Promise<{ isAdmin: boolean }> => {
-    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
-    const headers: Record<string, string> = {};
-    if (adminToken) {
-        headers['Authorization'] = `Bearer ${adminToken}`;
+    try {
+        const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+        const headers: Record<string, string> = {};
+        if (adminToken) {
+            headers['Authorization'] = `Bearer ${adminToken}`;
+        }
+        const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/check-admin`, { headers });
+        return await handleResponse(response);
+    } catch (err: any) {
+        toast.error(err.message || 'Failed to check admin status');
+        throw err;
     }
-    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/check-admin`, { headers });
-    return await handleResponse(response);
 };
 
 /**

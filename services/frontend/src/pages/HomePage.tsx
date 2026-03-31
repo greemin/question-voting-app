@@ -15,8 +15,10 @@ function HomePage(): JSX.Element {
       const data = await createSession(customSlug);
       // data.sessionId is returned
       navigate(`/${data.sessionId}`);
-    } catch (error: any) {
-      alert(`Failed to create session: ${error.message}`);
+    } catch (error) {
+      // The toast is already shown by the API layer.
+      // We can just log the error for debugging.
+      console.error("Failed to create session:", error);
     } finally {
       setLoading(false);
     }

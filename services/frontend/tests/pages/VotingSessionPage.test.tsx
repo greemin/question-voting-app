@@ -50,10 +50,6 @@ const mockSessionData: SessionData = {
 };
 
 describe('VotingSessionPage', () => {
-  beforeEach(() => {
-    window.alert = vi.fn();
-  });
-
   afterEach(() => {
     vi.clearAllMocks();
   });

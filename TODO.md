@@ -93,10 +93,10 @@ This document outlines the development plan for the application. Phases are orga
     -   **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
     -   **Action**: Add QR code links to session.
 
--   [o] **Improve Input Validation & Error Handling**
+-   [x] **Improve Input Validation & Error Handling**
     -   Provide better feedback to the user.
     -   [x] **Action (Frontend)**: Add basic input validation (e.g., max question length) to the `QuestionForm`.
-    -   **Action (Frontend)**: Implement a toast notification system (e.g., `react-hot-toast`) to display API errors and other feedback.
+    -   [x] **Action (Frontend)**: Implement a toast notification system (e.g., `react-hot-toast`) to display API errors and other feedback.
 
 ---
 

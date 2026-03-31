@@ -22,8 +22,6 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
       await submitQuestion(sessionId, text.trim().slice(0, QUESTION_MAX_LENGTH));
       setText('');
       onQuestionSubmit(); // Refresh the list
-    } catch (error: any) {
-      alert(`Submission failed: ${error.message}`);
     } finally {
       setLoading(false);
     }

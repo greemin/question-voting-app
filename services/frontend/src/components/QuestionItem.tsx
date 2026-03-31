@@ -13,22 +13,12 @@ interface QuestionItemProps {
 
 function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionItemProps): JSX.Element {
   const handleVote = async () => {
-    try {
-      await voteQuestion(sessionId, question.id);
-      onVoteSuccess();
-    } catch (error: any) {
-      alert(`Vote failed: ${error.message}`);
-    }
+    await voteQuestion(sessionId, question.id);
+    onVoteSuccess();
   };
 
   const handleDelete = async () => {    
-    try {
-      await deleteQuestion(sessionId, question.id);
-      // Note: We don't necessarily need to refresh the list manually here 
-      // because our WebSocket `QUESTION_DELETED` event will instantly remove it!
-    } catch (error: any) {
-      alert(`Delete failed: ${error.message}`);
-    }
+    await deleteQuestion(sessionId, question.id);
   };
 
   return (

@@ -13,5 +13,6 @@ COPY . .
 # Expose port 5173 for the Vite dev server
 EXPOSE 5173
 
-# Command to run the Vite dev server
-CMD ["npm", "run", "dev"]
+# Command to run the Vite dev server. 
+# Running 'npm install' first ensures dependencies are always in sync when the container starts.
+CMD ["sh", "-c", "npm install && npm run dev"]

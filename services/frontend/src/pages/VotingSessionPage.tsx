@@ -1,5 +1,6 @@
 // /frontend/src/pages/VotingSessionPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSessionData, endSession, checkAdminStatus, createSessionWebSocket } from '../api/sessionApi.ts';
 import QuestionForm from '../components/QuestionForm.tsx';
@@ -33,12 +34,6 @@ function VotingSessionPage(): JSX.Element {
       data.questions.sort((a: Question, b: Question) => b.votes - a.votes);
       setQuestions(data.questions);
       setSessionTitle(data.sessionTitle);
-    } catch (error: any) {
-      console.error('Failed to fetch session data:', error);
-      alert(error.message);
-      if (error.message.includes('not found')) {
-        navigate('/');
-      }
     } finally {
       setLoading(false);
     }
@@ -47,14 +42,10 @@ function VotingSessionPage(): JSX.Element {
   const handleEndSession = async () => {
     if (!window.confirm("Are you sure you want to end this voting session? This will delete all questions.")) return;
     
-    try {
-      if (!sessionId) return;
-      await endSession(sessionId);
-      alert('Session ended and data deleted successfully!');
-      navigate('/');
-    } catch (error: any) {
-      alert(`Failed to end session: ${error.message}`);
-    }
+    if (!sessionId) return;
+    await endSession(sessionId);
+    navigate('/');
+
   };
 
   useEffect(() => {
@@ -86,7 +77,9 @@ function VotingSessionPage(): JSX.Element {
             break;
 
           case 'SESSION_ENDED':
-            alert('This session has been ended by the admin.');
+            if(!isAdmin) {
+              toast('This session has been ended by the admin.');
+            }
             navigate('/');
             break;
 
