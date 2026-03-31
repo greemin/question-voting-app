@@ -48,6 +48,16 @@ function VotingSessionPage(): JSX.Element {
 
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      toast.error('Failed to copy link');
+    }
+  };
+
   useEffect(() => {
     // Fetch initial session data
     fetchSession();
@@ -118,7 +128,8 @@ function VotingSessionPage(): JSX.Element {
         <h1 className="session-title">
           {sessionTitle?.toUpperCase()}
         </h1>
-        <a
+        <div className="link-container">
+          <a
             href={window.location.href}
             className="session-id"
             target="_blank"
@@ -126,6 +137,10 @@ function VotingSessionPage(): JSX.Element {
           >
             {link}
           </a>
+          <button onClick={handleCopyLink} className="copy-link-button">
+            📋
+          </button>
+        </div>
       </div>
       
       { isAdmin && 

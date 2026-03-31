@@ -22,8 +22,32 @@
 .session-title {
 }
 
+.link-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .session-id {
   color: #dc3545;
+}
+
+.copy-link-button{
+  background-color: initial;
+  color: black;
+  align-self: flex-start;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.copy-link-button:hover {
+  background-color: lightgrey;
 }
 
 .end-session-button {

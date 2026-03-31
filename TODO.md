@@ -90,7 +90,7 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [ ] **Add "Copy Link" Button**
     -   Make it easier for users to share the session URL.
-    -   **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
+    -   [x] **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
     -   **Action**: Add QR code links to session.
 
 -   [x] **Improve Input Validation & Error Handling**
