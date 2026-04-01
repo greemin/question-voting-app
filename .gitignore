@@ -28,3 +28,6 @@ tmp/
 
 # Enviroment variable files
 .env
+
+playwright-report/
+test-results/
