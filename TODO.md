@@ -88,7 +88,7 @@ This document outlines the development plan for the application. Phases are orga
     -   Prevent accidental destructive actions.
     -   **Action**: Use the chosen component library to add a confirmation dialog before an admin ends a session or deletes a question.
 
--   [ ] **Add "Copy Link" Button**
+-   [.] **Add "Copy Link" Button**
     -   Make it easier for users to share the session URL.
     -   [x] **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
     -   **Action**: Add QR code links to session.
@@ -104,9 +104,9 @@ This document outlines the development plan for the application. Phases are orga
 
 *This phase ensures the application is reliable and easy to deploy.*
 
--   [ ] **Add Integration Tests**
+-   [x] **Add Integration Tests**
     -   Test the full application flow from end to end.
-    -   **Action**: Write tests that cover user flows across both the frontend and backend (e.g., creating a session, submitting a question, and seeing it appear in real-time).
+    -   [x] **Action**: Write tests that cover user flows across both the frontend and backend (e.g., creating a session, submitting a question, and seeing it appear in real-time).
 
 -   [ ] **Add Mongo Integration Tests**
     -   Write integration tests for the `MongoStorage` implementation.
