@@ -8,13 +8,14 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    // Base URL to use in actions like `await page.goto('/')`.
-    baseURL: 'http://localhost:5174',
+    baseURL: 'http://localhost:5173',
     
     // Collect trace when retrying the failed test.
     trace: 'on-first-retry',
-  },
 
+    // Maximum time each action such as `click()` or `fill()` can take.
+    actionTimeout: 5000,
+  },
   // Configure projects for major browsers
   projects: [
     {
