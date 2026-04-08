@@ -27,25 +27,28 @@ function HomePage(): JSX.Element {
   return (
     <div className="home-page-container">
       <h1>Question Voting App</h1>
-      <div className="custom-slug-container">
-        <input
-          type="text"
-          value={customSlug}
-          onChange={(e) => setCustomSlug(e.target.value)}
-          placeholder="Sessiontitle: Q&A Session"
-          className="custom-slug-input"
-        />
+      <p className="home-tagline">Real-time Q&amp;A for your event</p>
+      <div className="home-card">
+        <div className="custom-slug-container">
+          <input
+            type="text"
+            value={customSlug}
+            onChange={(e) => setCustomSlug(e.target.value)}
+            placeholder="Session title (optional)"
+            className="custom-slug-input"
+          />
+        </div>
+        <button
+          onClick={handleCreateSession}
+          disabled={loading}
+          className="start-session-button"
+        >
+          {loading ? 'Creating...' : '🚀 Start New Voting Session'}
+        </button>
+        <p className="home-page-info">
+          Enter a custom name or leave blank to generate a random one.
+        </p>
       </div>
-      <button
-        onClick={handleCreateSession}
-        disabled={loading}
-        className="start-session-button"
-      >
-        {loading ? 'Creating...' : '🚀 Start New Voting Session'}
-      </button>
-      <p className="home-page-info">
-        Enter a custom name or start a session to generate a random one.
-      </p>
     </div>
   );
 }

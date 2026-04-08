@@ -17,17 +17,18 @@ function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionI
     onVoteSuccess();
   };
 
-  const handleDelete = async () => {    
+  const handleDelete = async () => {
     await deleteQuestion(sessionId, question.id);
   };
 
   return (
     <div className="question-item-container">
-      <p className="question-text">{question.text}</p>
-      <div className="question-details">
-        <span className="vote-count">
-          Votes: <strong data-testid="vote-count">{question.votes}</strong>
-        </span>
+      <div className="vote-pill">
+        <strong data-testid="vote-count">{question.votes}</strong>
+        <span>votes</span>
+      </div>
+      <div className="question-body">
+        <p className="question-text">{question.text}</p>
         <div className="button-group">
           <button onClick={handleVote} data-testid="vote-button" className="vote-button">
             Vote Up

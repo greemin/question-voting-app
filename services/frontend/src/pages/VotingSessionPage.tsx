@@ -41,7 +41,7 @@ function VotingSessionPage(): JSX.Element {
 
   const handleEndSession = async () => {
     if (!window.confirm("Are you sure you want to end this voting session? This will delete all questions.")) return;
-    
+
     if (!sessionId) return;
     await endSession(sessionId);
     navigate('/');
@@ -107,8 +107,8 @@ function VotingSessionPage(): JSX.Element {
       // Clear handlers to avoid memory leaks or state updates on unmounted components
       ws.onmessage = null;
       ws.onerror = null;
-      
-      // If the socket is still connecting, waiting for it to open before closing 
+
+      // If the socket is still connecting, waiting for it to open before closing
       // prevents browser console errors ("connection interrupted") in React Strict Mode.
       if (ws.readyState === WebSocket.CONNECTING) {
         ws.onopen = () => ws.close();
@@ -118,20 +118,20 @@ function VotingSessionPage(): JSX.Element {
     };
   }, [sessionId, fetchSession, navigate]);
 
+  if (loading) {
+    return <div className="loading-session"><p>Loading session...</p></div>;
+  }
 
-  if (loading) return <div className="loading-session">Loading session...</div>;
   const link = window.location.host + window.location.pathname;
 
   return (
-    <div className="voting-session-container">
-      <div className="title-container">
-        <h1 className="session-title">
-          {sessionTitle?.toUpperCase()}
-        </h1>
-        <div className="link-container">
+    <div className="voting-session-page">
+      <header className="session-header">
+        <h1 className="session-title">{sessionTitle?.toUpperCase()}</h1>
+        <div className="header-actions">
           <a
             href={window.location.href}
-            className="session-id"
+            className="session-link"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -140,36 +140,41 @@ function VotingSessionPage(): JSX.Element {
           <button onClick={handleCopyLink} className="copy-link-button">
             📋
           </button>
+          {isAdmin &&
+            <button onClick={handleEndSession} className="end-session-button">
+              End Session
+            </button>
+          }
         </div>
-      </div>
-      
-      { isAdmin && 
-          <button onClick={handleEndSession} className="end-session-button">
-            End Session & Delete Data
-          </button> 
-      }
+      </header>
 
-      <QuestionForm
-        sessionId={sessionId!}
-        onQuestionSubmit={() => {}} /* Websocket handles update */
-      />
-      
-      <h2>Questions ({questions.length})</h2>
-      {questions.length === 0 ? (
-        <p>No questions submitted yet. Be the first!</p>
-      ) : (
-        <div className="questions-container">
-          {questions.map((q) => (
-            <QuestionItem 
-              key={q.id} 
-              sessionId={sessionId!} 
-              question={q} 
-              isAdmin={isAdmin}
-              onVoteSuccess={() => {}} /* Websocket handles update */
-            />
-          ))}
+      <main className="session-content">
+        <QuestionForm
+          sessionId={sessionId!}
+          onQuestionSubmit={() => {}} /* Websocket handles update */
+        />
+
+        <div className="questions-heading">
+          Questions
+          <span className="questions-count-badge">{questions.length}</span>
         </div>
-      )}
+
+        {questions.length === 0 ? (
+          <p className="no-questions">No questions yet. Be the first!</p>
+        ) : (
+          <div className="questions-container">
+            {questions.map((q) => (
+              <QuestionItem
+                key={q.id}
+                sessionId={sessionId!}
+                question={q}
+                isAdmin={isAdmin}
+                onVoteSuccess={() => {}} /* Websocket handles update */
+              />
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

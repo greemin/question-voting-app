@@ -82,7 +82,7 @@ This document outlines the development plan for the application. Phases are orga
     -   Overhaul the visual design for a modern, mobile-first experience without adding heavy dependencies.
     -   [x] **Action (Frontend)**: Implement basic grid layout using media queries for breakpoints.
     -   **Action (Frontend)**: Add theming via React.Context to make layout experimentation easier.
-    -   **Action (Frontend)**: Settle on default theme for the app.
+    -   [x] **Action (Frontend)**: Settle on default theme for the app.
 
 -   [ ] **Implement Confirmation Modals**
     -   Prevent accidental destructive actions.

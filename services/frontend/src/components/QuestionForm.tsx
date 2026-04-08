@@ -39,10 +39,12 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
         className="question-input"
         maxLength={QUESTION_MAX_LENGTH}
       />
-      { text.length > 0 && <div className="character-count">{text.length}/{QUESTION_MAX_LENGTH}</div> }
-      <button type="submit" disabled={loading} className="submit-button">
-        {loading ? 'Submitting...' : 'Submit Question'}
-      </button>
+      <div className="form-footer">
+        {text.length > 0 && <span className="character-count">{text.length}/{QUESTION_MAX_LENGTH}</span>}
+        <button type="submit" disabled={loading} className="submit-button">
+          {loading ? 'Submitting...' : 'Submit Question'}
+        </button>
+      </div>
     </form>
   );
 }
