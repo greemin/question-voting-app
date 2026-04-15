@@ -1,7 +1,8 @@
 // /frontend/src/pages/VotingSessionPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { getSessionData, endSession, checkAdminStatus, createSessionWebSocket } from '../api/sessionApi.ts';
 import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
@@ -11,10 +12,22 @@ import './VotingSessionPage.css';
 function VotingSessionPage(): JSX.Element {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [sessionTitle, setSessionTitle] = useState<string>('');
+  const [showQR, setShowQR] = useState<boolean>(false);
+
+  // If an adminToken is passed as a query param (e.g. via a shared admin link),
+  // persist it to localStorage and strip it from the URL.
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('adminToken');
+    if (tokenFromUrl && sessionId) {
+      localStorage.setItem(`adminToken_${sessionId}`, tokenFromUrl);
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   const fetchSession = useCallback(async () => {
     try {
@@ -31,8 +44,11 @@ function VotingSessionPage(): JSX.Element {
         setIsAdmin(status.isAdmin);
       }
 
-      data.questions.sort((a: Question, b: Question) => b.votes - a.votes);
-      setQuestions(data.questions);
+      if (Array.isArray(data.questions) && data.questions.length > 0) {
+        data.questions.sort((a: Question, b: Question) => b.votes - a.votes);
+        setQuestions(data.questions);
+      }
+
       setSessionTitle(data.sessionTitle);
     } finally {
       setLoading(false);
@@ -55,6 +71,23 @@ function VotingSessionPage(): JSX.Element {
     } catch (err) {
       console.error('Failed to copy link:', err);
       toast.error('Failed to copy link');
+    }
+  };
+
+  const handleCopyAdminLink = async () => {
+    if (!sessionId) return;
+    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+    if (!adminToken) {
+      toast.error('Admin token not found');
+      return;
+    }
+    try {
+      const adminUrl = `${window.location.origin}${window.location.pathname}?adminToken=${encodeURIComponent(adminToken)}`;
+      await navigator.clipboard.writeText(adminUrl);
+      toast.success('Admin link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy admin link:', err);
+      toast.error('Failed to copy admin link');
     }
   };
 
@@ -140,13 +173,24 @@ function VotingSessionPage(): JSX.Element {
           <button onClick={handleCopyLink} className="copy-link-button">
             📋
           </button>
-          {isAdmin &&
+          <button onClick={() => setShowQR((v) => !v)} className="copy-link-button" title="Show QR code">
+            ▣
+          </button>
+          {isAdmin && <>
+            <button onClick={handleCopyAdminLink} className="copy-link-button" title="Copy admin link">
+              🔑
+            </button>
             <button onClick={handleEndSession} className="end-session-button">
               End Session
             </button>
-          }
+          </>}
         </div>
       </header>
+
+      <div className={`qr-banner${showQR ? ' qr-banner--visible' : ''}`}>
+        <QRCodeSVG value={`${window.location.origin}${window.location.pathname}`} size={200} />
+        <p className="qr-banner-url">{window.location.host}{window.location.pathname}</p>
+      </div>
 
       <main className="session-content">
         <QuestionForm

@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './tests/setup.ts',
+    exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.spec.ts'],
   },
   server: {
     host: '0.0.0.0', // Listen on all available network interfaces

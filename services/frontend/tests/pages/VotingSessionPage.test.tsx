@@ -1,7 +1,7 @@
 // /frontend/tests/pages/VotingSessionPage.test.tsx
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { vi, Mock } from 'vitest';
 import VotingSessionPage from '../../src/pages/VotingSessionPage';
 import * as sessionApi from '../../src/api/sessionApi';
@@ -52,6 +52,7 @@ const mockSessionData: SessionData = {
 describe('VotingSessionPage', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('shows loading state initially, then fetches and displays questions', async () => {
@@ -82,12 +83,136 @@ describe('VotingSessionPage', () => {
       </BrowserRouter>
     );
     
-    const endSessionButton = await screen.findByText('End Session & Delete Data');
+    const endSessionButton = await screen.findByText('End Session');
     await act(async () => {
       fireEvent.click(endSessionButton);
     });
 
     expect(window.confirm).toHaveBeenCalled();
     expect(sessionApi.endSession).toHaveBeenCalledWith('test-session');
+  });
+});
+
+describe('QR code banner', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('is hidden by default', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    const { container } = render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Question 1');
+
+    expect(container.querySelector('.qr-banner')).not.toHaveClass('qr-banner--visible');
+  });
+
+  it('shows when QR button is clicked and hides on second click', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    const { container } = render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Question 1');
+    const qrButton = screen.getByTitle('Show QR code');
+    const banner = container.querySelector('.qr-banner');
+
+    await act(async () => { fireEvent.click(qrButton); });
+    expect(banner).toHaveClass('qr-banner--visible');
+
+    await act(async () => { fireEvent.click(qrButton); });
+    expect(banner).not.toHaveClass('qr-banner--visible');
+  });
+});
+
+describe('admin link', () => {
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('copy admin link button is not visible to non-admins', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Question 1');
+    expect(screen.queryByTitle('Copy admin link')).not.toBeInTheDocument();
+  });
+
+  it('copy admin link button is visible to admins', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: true });
+
+    render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('End Session');
+    expect(screen.getByTitle('Copy admin link')).toBeInTheDocument();
+  });
+
+  it('copies URL with admin token to clipboard when clicked', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: true });
+    localStorage.setItem('adminToken_test-session', 'my-secret-token');
+
+    render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('End Session');
+    await act(async () => { fireEvent.click(screen.getByTitle('Copy admin link')); });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('adminToken=my-secret-token')
+    );
+  });
+});
+
+describe('admin token from URL', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('stores token from URL query param in localStorage', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    render(
+      <MemoryRouter initialEntries={['/test-session?adminToken=url-token']}>
+        <VotingSessionPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('Question 1');
+    expect(localStorage.getItem('adminToken_test-session')).toBe('url-token');
   });
 });

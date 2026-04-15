@@ -78,20 +78,16 @@ This document outlines the development plan for the application. Phases are orga
 
 *This phase focuses on improving the user experience and visual design.*
 
--   [.] **UI Redesign (Copy-Paste Components)**
+-   [x] **UI Redesign**
     -   Overhaul the visual design for a modern, mobile-first experience without adding heavy dependencies.
     -   [x] **Action (Frontend)**: Implement basic grid layout using media queries for breakpoints.
-    -   **Action (Frontend)**: Add theming via React.Context to make layout experimentation easier.
     -   [x] **Action (Frontend)**: Settle on default theme for the app.
 
--   [ ] **Implement Confirmation Modals**
-    -   Prevent accidental destructive actions.
-    -   **Action**: Use the chosen component library to add a confirmation dialog before an admin ends a session or deletes a question.
-
--   [.] **Add "Copy Link" Button**
+-   [x] **Add "Copy Link" Button**
     -   Make it easier for users to share the session URL.
     -   [x] **Action**: Add a "Copy to Clipboard" button on the `VotingSessionPage.tsx`.
-    -   **Action**: Add QR code links to session.
+    -   [x] **Action**: Add admin links to session.
+    -   [x] **Action**: Add QR code links to session.
 
 -   [x] **Improve Input Validation & Error Handling**
     -   Provide better feedback to the user.
