@@ -21,11 +21,6 @@ WORKDIR /app
 # Copy the built binary from the builder stage
 COPY --from=builder /app/main .
 
-# Copy the data directory
-# This is needed for the file-based storage
-# In a later step, this will be replaced with a database
-COPY data ./data
-
 # Expose port 8081
 EXPOSE 8081
 
