@@ -38,9 +38,21 @@ jobs:
         working-directory: ./services/frontend
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('services/frontend/package-lock.json') }}
+
       - name: Install Playwright browsers
         working-directory: ./services/frontend
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Install Playwright OS dependencies
+        working-directory: ./services/frontend
+        run: npx playwright install-deps chromium
 
       - name: Build and start stack
         run: docker compose -f docker-compose.yml up -d --build
