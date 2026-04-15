@@ -39,11 +39,11 @@ services:
     networks:
       - backend-network
     healthcheck:
-      test: ["CMD-SHELL", "mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --eval \"db.adminCommand('ping')\""]
+      test: ["CMD-SHELL", "${MONGO_SHELL_COMMAND:-mongosh} -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --eval \"db.adminCommand('ping')\""]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: ${MONGO_HEALTHCHECK_START_PERIOD:-0s}
 
 volumes:
   mongo-data:
