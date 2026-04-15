@@ -108,11 +108,10 @@ This document outlines the development plan for the application. Phases are orga
     -   Write integration tests for the `MongoStorage` implementation.
     -  [x] **Action**: Use Testcontainers to spin up an ephemeral MongoDB database during testing to ensure queries and connection logic work correctly.
 
--   [ ] **Set Up CI/CD Pipeline**
+-   [x] **Set Up CI/CD Pipeline**
     -   Automate testing and deployment.
-    -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
-    -   **Action**: Extend the workflow to build and push Docker images, and eventually deploy to a hosting provider.
-    -   **Action**: Create Github action that precompiles GO binary and create a Docker image. Then reference that Docker image in Docker compose file(s).
+    -   [x] **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
+    -   [x] **Action**: Create a GitHub Actions workflow that builds and pushes backend and frontend Docker images to GHCR.
 
 ---
 
@@ -121,9 +120,8 @@ This document outlines the development plan for the application. Phases are orga
 *First real deployment to a hosted environment.*
 
 -   [ ] **Choose a Hosting Provider**
-    -   Evaluate options based on cost, simplicity, and WebSocket support.
-    -   **Action**: Pick a provider (e.g. Fly.io, Render, Railway, or a VPS) that supports Docker and persistent WebSocket connections.
-    -   **Action**: Verify MongoDB hosting strategy — managed Atlas free tier or provider-hosted.
+    -   **Action**: Provision a Hetzner VPS, clone the repo, and configure the `.env` file with production secrets.
+    -   **Action**: Verify MongoDB hosting strategy — managed Atlas free tier or self-hosted on the same VPS.
 
 -   [ ] **Provision Production Environment**
     -   **Action**: Set up production environment variables (MongoDB URI, CORS origin, cookie settings, admin secrets).
@@ -131,7 +129,8 @@ This document outlines the development plan for the application. Phases are orga
     -   **Action**: Configure TLS — HTTPS for the frontend and WSS for WebSocket connections.
 
 -   [ ] **Deploy**
-    -   **Action**: Deploy using the production `docker-compose.yml` (without the dev override).
+    -   **Action**: Extend the CI workflow to deploy to hosting provider after a successful image build.
+    -   **Action**: Deploy using `docker-compose.prod.yml` — pull latest images and restart containers.
     -   **Action**: Smoke test the golden path after deploy: create session, submit question, vote, end session.
     -   **Action**: Verify WebSocket connections work end-to-end in the hosted environment.
 
@@ -159,5 +158,7 @@ This document outlines the development plan for the application. Phases are orga
 -   [ ] **Insecure Direct Object Reference (IDOR):** The URL parsing is done by splitting the path by `/`. This is fragile and can lead to bugs if the URL format changes. For example, `GET /api/session/{sessionId}/questions`, `parts[3]` is assumed to be the `sessionId`. A better approach would be to use a router that supports path parameters, like `gorilla/mux` or `chi`.
 
 -   [ ] **Missing Input Validation:** In `CreateSessionHandler`, the `req.SessionID` is checked for length, but not for character validity. The `slugify` function handles some of it, but it's better to be strict about what's allowed. In `SubmitQuestionHandler`, the question text length is checked, but not for malicious content (e.g., XSS). While the frontend is React (which helps prevent XSS), it's good practice to have defense in depth and validate/sanitize on the backend as well.
+
+-   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
 
 -   [ ] **Load Testing:** Write and execute (k6?) load tests on prod enviroment. Test should test how many sessions and users can run concurrently. Decision needs to be made about performance aims. Also resilience against basic DDOS attacks should be tested.
