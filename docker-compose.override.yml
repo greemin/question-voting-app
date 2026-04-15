@@ -12,7 +12,7 @@ services:
       - APP_ENV=dev
       - APP_USER=air
       - MONGO_URI=mongodb://devroot:devpassword@mongo:27017/?authSource=admin
-      - CORS_ORIGINS=http://localhost:5174
+      - CORS_ORIGINS=http://localhost:5173
       - ENV=development
 
   frontend:
@@ -23,7 +23,7 @@ services:
       - ./services/frontend:/app
       - /app/node_modules
     ports:
-      - "5174:5173"
+      - "5173:5173"
     environment:
       - ENV=development
       - NODE_ENV=development

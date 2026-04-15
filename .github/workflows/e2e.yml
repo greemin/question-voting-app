@@ -1,0 +1,70 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # MongoDB credentials used by both the mongo container and the backend URI
+      MONGO_INITDB_ROOT_USERNAME: ciroot
+      MONGO_INITDB_ROOT_PASSWORD: cipassword
+      MONGO_URI: mongodb://ciroot:cipassword@mongo:27017/?authSource=admin
+      # Give MongoDB extra time to initialise before health checks start failing
+      MONGO_HEALTHCHECK_START_PERIOD: 20s
+      # Backend
+      PORT: 8081
+      CORS_ORIGINS: http://localhost
+      BASE_URL: http://localhost
+      ENV: production
+      # Frontend (used only at image-build time; nginx handles proxying at runtime)
+      BACKEND_API_URL: http://backend:8081
+      ALLOWED_HOSTS: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ./services/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./services/frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./services/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Build and start stack
+        run: docker compose -f docker-compose.yml up -d --build
+
+      - name: Wait for frontend to be ready
+        run: |
+          echo "Waiting for frontend at http://localhost..."
+          timeout 90 bash -c 'until curl -sf http://localhost > /dev/null; do sleep 3; done'
+          echo "Frontend is up."
+
+      - name: Run Playwright tests
+        working-directory: ./services/frontend
+        env:
+          CI: true
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: services/frontend/playwright-report/
+          retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker-compose.yml down -v
