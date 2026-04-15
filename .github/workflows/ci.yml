@@ -3,8 +3,20 @@ name: CI
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - ".gitignore"
+      - "LICENSE"
+      - "env.example"
+      - "docker-compose.prod.yml"
   pull_request:
     branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - ".gitignore"
+      - "LICENSE"
+      - "env.example"
+      - "docker-compose.prod.yml"
 
 jobs:
   frontend-unit:
@@ -106,8 +118,12 @@ jobs:
       - name: Wait for frontend to be ready
         run: |
           echo "Waiting for frontend at http://localhost..."
-          timeout 90 bash -c 'until curl -sf http://localhost > /dev/null; do sleep 3; done'
+          timeout 180 bash -c 'until curl -sf http://localhost > /dev/null; do sleep 3; done'
           echo "Frontend is up."
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml logs
 
       - name: Run Playwright tests
         working-directory: ./services/frontend
