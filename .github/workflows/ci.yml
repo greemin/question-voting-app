@@ -1,4 +1,4 @@
-name: E2E Tests
+name: CI
 
 on:
   push:
@@ -7,24 +7,70 @@ on:
     branches: [master]
 
 jobs:
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ./services/frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm test -- --run
+
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./services/backend/go.mod
+          cache-dependency-path: ./services/backend/go.sum
+
+      - run: go test ./...
+
+  backend-integration:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./services/backend/go.mod
+          cache-dependency-path: ./services/backend/go.sum
+
+      - run: go test -tags integration -v ./internal/storage/...
+
   e2e:
+    name: E2E Tests
     runs-on: ubuntu-latest
     env:
-      # MongoDB credentials used by both the mongo container and the backend URI
       MONGO_INITDB_ROOT_USERNAME: ciroot
       MONGO_INITDB_ROOT_PASSWORD: cipassword
       MONGO_URI: mongodb://ciroot:cipassword@mongo:27017/?authSource=admin
-      # Give MongoDB extra time to initialise before health checks start failing
       MONGO_HEALTHCHECK_START_PERIOD: 20s
-      # Backend
       PORT: 8081
       CORS_ORIGINS: http://localhost
       BASE_URL: http://localhost
       ENV: production
-      # Frontend (used only at image-build time; nginx handles proxying at runtime)
       BACKEND_API_URL: http://backend:8081
       ALLOWED_HOSTS: ""
-
     steps:
       - uses: actions/checkout@v4
 

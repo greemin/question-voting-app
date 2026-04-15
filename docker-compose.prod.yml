@@ -1,0 +1,55 @@
+services:
+  backend:
+    image: ghcr.io/greemin/question-voting-app/backend:${TAG:-latest}
+    restart: unless-stopped
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - PORT=8081
+      - ENV=production
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - frontend-network
+      - backend-network
+
+  frontend:
+    image: ghcr.io/greemin/question-voting-app/frontend:${TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - ENV=production
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - frontend-network
+
+  mongo:
+    image: mongo:${MONGO_VERSION:-latest}
+    restart: unless-stopped
+    command: ["--auth", "--quiet"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --eval \"db.adminCommand('ping')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongo-data:
+
+networks:
+  frontend-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
