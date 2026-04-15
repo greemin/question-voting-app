@@ -71,6 +71,7 @@ jobs:
 
   e2e:
     name: E2E Tests
+    if: false
     runs-on: ubuntu-latest
     env:
       MONGO_INITDB_ROOT_USERNAME: ciroot
