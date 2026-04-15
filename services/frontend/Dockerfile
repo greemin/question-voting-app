@@ -1,5 +1,7 @@
 # Stage 1: Build the React application
-FROM node:20-alpine AS builder
+# $BUILDPLATFORM runs this stage natively on the CI host (amd64) regardless of
+# the target platform — avoids QEMU emulating Node.js for arm64 builds.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 WORKDIR /app
 

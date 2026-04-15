@@ -1,5 +1,9 @@
 # Stage 1: Build the Go binary
-FROM golang:1.25-alpine AS builder
+# $BUILDPLATFORM runs this stage natively on the CI host; TARGETARCH is passed
+# in so Go cross-compiles the binary for the actual target platform.
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
+
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -11,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -a -installsuffix cgo -o main ./cmd/main.go
 
 # Stage 2: Create the final image
 FROM alpine:latest
