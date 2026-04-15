@@ -96,7 +96,7 @@ This document outlines the development plan for the application. Phases are orga
 
 ---
 
-### 🧪 **Phase 4: Testing & Deployment**
+### 🧪 **Phase 4: Testing & CI/CD Pipeline**
 
 *This phase ensures the application is reliable and easy to deploy.*
 
@@ -104,20 +104,45 @@ This document outlines the development plan for the application. Phases are orga
     -   Test the full application flow from end to end.
     -   [x] **Action**: Write tests that cover user flows across both the frontend and backend (e.g., creating a session, submitting a question, and seeing it appear in real-time).
 
--   [ ] **Add Mongo Integration Tests**
+-   [x] **Add Mongo Integration Tests**
     -   Write integration tests for the `MongoStorage` implementation.
-    -   **Action**: Use Testcontainers to spin up an ephemeral MongoDB database during testing to ensure queries and connection logic work correctly.
-
--   [ ] **Load Testing DEV**
-    -   Write k6 Load tests for dev enviroment context
-    -   **Action**: Write load test for scenarios of multiple running sessions with multiple users.
-    -   **Action**: Execute and evaluate tests and make descions about performance aims.
+    -  [x] **Action**: Use Testcontainers to spin up an ephemeral MongoDB database during testing to ensure queries and connection logic work correctly.
 
 -   [ ] **Set Up CI/CD Pipeline**
     -   Automate testing and deployment.
     -   **Action**: Create a GitHub Actions workflow that automatically runs all tests on push/pull request.
     -   **Action**: Extend the workflow to build and push Docker images, and eventually deploy to a hosting provider.
     -   **Action**: Create Github action that precompiles GO binary and create a Docker image. Then reference that Docker image in Docker compose file(s).
+
+---
+
+### 🚀 **Phase 5: Deployment**
+
+*First real deployment to a hosted environment.*
+
+-   [ ] **Choose a Hosting Provider**
+    -   Evaluate options based on cost, simplicity, and WebSocket support.
+    -   **Action**: Pick a provider (e.g. Fly.io, Render, Railway, or a VPS) that supports Docker and persistent WebSocket connections.
+    -   **Action**: Verify MongoDB hosting strategy — managed Atlas free tier or provider-hosted.
+
+-   [ ] **Provision Production Environment**
+    -   **Action**: Set up production environment variables (MongoDB URI, CORS origin, cookie settings, admin secrets).
+    -   **Action**: Ensure MongoDB runs in auth-enabled mode with a dedicated user for the app.
+    -   **Action**: Configure TLS — HTTPS for the frontend and WSS for WebSocket connections.
+
+-   [ ] **Deploy**
+    -   **Action**: Deploy using the production `docker-compose.yml` (without the dev override).
+    -   **Action**: Smoke test the golden path after deploy: create session, submit question, vote, end session.
+    -   **Action**: Verify WebSocket connections work end-to-end in the hosted environment.
+
+-   [ ] **Observability**
+    -   **Action**: Set up basic logging and error visibility (provider logs or a lightweight tool like Grafana/Loki).
+    -   **Action**: Set up an uptime monitor (e.g. UptimeRobot) to alert on downtime.
+
+-   [ ] **Load Testing (post-deploy)**
+    -   Only meaningful against the real hosted infrastructure — see Long-Term Goals.
+    -   **Action**: Point k6 at the production URL and run the session/WebSocket load scenarios.
+    -   **Action**: Record baseline metrics (concurrent sessions, connections, response times) to inform future performance decisions.
 
 ---
 
