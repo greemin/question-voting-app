@@ -1,10 +1,15 @@
 // /frontend/tests/pages/HomePage.test.tsx
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/preact';
 import { BrowserRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import HomePage from '../../src/pages/HomePage';
 import * as sessionApi from '../../src/api/sessionApi';
+
+vi.mock('react-router-dom', () => ({
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useNavigate: () => vi.fn(),
+}));
 
 // Mock the sessionApi
 vi.mock('../../src/api/sessionApi');

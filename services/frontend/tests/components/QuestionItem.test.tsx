@@ -1,6 +1,6 @@
 // /frontend/tests/components/QuestionItem.test.tsx
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/preact';
 import { vi } from 'vitest';
 import QuestionItem from '../../src/components/QuestionItem';
 import * as sessionApi from '../../src/api/sessionApi';

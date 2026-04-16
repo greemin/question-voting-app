@@ -1,13 +1,26 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import preact from '@preact/preset-vite';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [preact()],
+  resolve: {
+    alias: {
+      'react': 'preact/compat',
+      'react-dom/test-utils': 'preact/test-utils',
+      'react-dom': 'preact/compat',
+      'react/jsx-runtime': 'preact/jsx-runtime',
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './tests/setup.ts',
     exclude: ['**/node_modules/**', '**/tests/e2e/**', '**/*.spec.ts'],
+    server: {
+      deps: {
+        inline: ['react-router-dom', 'react-router', '@remix-run/router'],
+      },
+    },
   },
   server: {
     host: '0.0.0.0', // Listen on all available network interfaces

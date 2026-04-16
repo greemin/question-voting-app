@@ -1,25 +1,26 @@
 // /frontend/tests/pages/VotingSessionPage.test.tsx
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/preact';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { vi, Mock } from 'vitest';
 import VotingSessionPage from '../../src/pages/VotingSessionPage';
 import * as sessionApi from '../../src/api/sessionApi';
-import { Question } from '../../src/models/Question';
 import { SessionData } from '../../src/models/SessionData';
 
 const mockNavigate = vi.fn();
+const mockUseSearchParams = vi.fn(() => [new URLSearchParams(), vi.fn()] as const);
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useParams: () => ({
-      sessionId: 'test-session',
-    }),
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock('qrcode.react', () => ({
+  QRCodeSVG: () => null,
+}));
+
+vi.mock('react-router-dom', () => ({
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  MemoryRouter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useParams: () => ({ sessionId: 'test-session' }),
+  useNavigate: () => mockNavigate,
+  useSearchParams: () => mockUseSearchParams(),
+}));
 
 vi.mock('../../src/api/sessionApi', () => ({
   createSession: vi.fn(),
@@ -200,9 +201,11 @@ describe('admin token from URL', () => {
   afterEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
   });
 
   it('stores token from URL query param in localStorage', async () => {
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('adminToken=url-token'), vi.fn()]);
     (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
     (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
 
