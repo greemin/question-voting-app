@@ -149,6 +149,7 @@ This document outlines the development plan for the application. Phases are orga
 
 *Section for long term todos and general technical debt.*
 
+-   [x] **i18n:** Add localization via lazy loaded json files based on browser language.
 -   [x] **Shorten Session URLs:** Change session path from "BASE_URL/votingSession/SESSION_SLUG" to "BASE_URL/SESSION_SLUG"
 
 -   [ ] **Separation of Concerns:** The handlers are directly interacting with the storage layer. In a larger application, it would be better to have a service layer in between to handle business logic.
