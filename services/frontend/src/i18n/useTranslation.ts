@@ -2,7 +2,14 @@ import enTranslations from './en.json';
 
 type Translations = typeof enTranslations;
 
-const SUPPORTED_LANGS = ['en', 'de', 'pl', 'ru', 'es', 'it', 'hu'] as const;
+const loaders: Record<string, () => Promise<{ default: Translations }>> = {
+  de: () => import('./de.json'),
+  pl: () => import('./pl.json'),
+  ru: () => import('./ru.json'),
+  es: () => import('./es.json'),
+  it: () => import('./it.json'),
+  hu: () => import('./hu.json'),
+};
 
 let translations: Translations = enTranslations;
 let langCode = 'en';
@@ -10,11 +17,11 @@ let langCode = 'en';
 export const loadTranslations = async (): Promise<void> => {
   const browserTag = typeof window !== 'undefined' ? navigator.language : 'en';
   const primary = new Intl.Locale(browserTag).language;
-  langCode = SUPPORTED_LANGS.includes(primary as (typeof SUPPORTED_LANGS)[number]) ? primary : 'en';
+  langCode = primary in loaders ? primary : 'en';
 
   if (langCode === 'en') return;
 
-  const module = await import(`./${langCode}.json`);
+  const module = await loaders[langCode]();
   translations = module.default;
 };
 
