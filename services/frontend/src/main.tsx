@@ -2,15 +2,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
-// Import BrowserRouter from react-router-dom
-import { BrowserRouter } from 'react-router-dom'; 
+import { BrowserRouter } from 'react-router-dom';
+import { loadTranslations } from './i18n/useTranslation.ts';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    {/* Ensure App is wrapped in BrowserRouter */}
-    <BrowserRouter> 
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>,
-);
+loadTranslations().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </React.StrictMode>,
+  );
+});

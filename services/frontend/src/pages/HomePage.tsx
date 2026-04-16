@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSession } from '../api/sessionApi.ts';
-import { useTranslation } from '../hooks/useTranslation.ts';
+import { useTranslation } from '../i18n/useTranslation.ts';
 import './HomePage.css';
 
 function HomePage(): JSX.Element {

@@ -1,7 +1,7 @@
 // /frontend/src/api/sessionApi.ts
 import toast from 'react-hot-toast';
 import { SessionData } from '../models/SessionData';
-import { getT } from '../hooks/useTranslation.ts';
+import { getT } from '../i18n/useTranslation.ts';
 
 const API_BASE = '/api/session';
 

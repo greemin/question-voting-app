@@ -2,7 +2,7 @@
 import React from 'react';
 import { voteQuestion, deleteQuestion } from '../api/sessionApi.ts';
 import { Question } from '../models/Question';
-import { useTranslation } from '../hooks/useTranslation.ts';
+import { useTranslation } from '../i18n/useTranslation.ts';
 import './QuestionItem.css';
 
 interface QuestionItemProps {

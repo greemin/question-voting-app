@@ -1,7 +1,7 @@
 // /frontend/src/components/QuestionForm.tsx
 import React, { useState } from 'react';
 import { submitQuestion } from '../api/sessionApi.ts';
-import { useTranslation } from '../hooks/useTranslation.ts';
+import { useTranslation } from '../i18n/useTranslation.ts';
 import './QuestionForm.css';
 
 interface QuestionFormProps {

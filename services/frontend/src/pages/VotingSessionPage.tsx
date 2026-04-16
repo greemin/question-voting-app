@@ -7,7 +7,7 @@ import { getSessionData, endSession, checkAdminStatus, createSessionWebSocket } 
 import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
 import { Question } from '../models/Question';
-import { useTranslation } from '../hooks/useTranslation.ts';
+import { useTranslation } from '../i18n/useTranslation.ts';
 import './VotingSessionPage.css';
 
 function VotingSessionPage(): JSX.Element {
