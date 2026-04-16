@@ -13,3 +13,9 @@ vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 // Mock window.alert
 vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+// Force English so tests are locale-independent
+Object.defineProperty(window.navigator, 'language', {
+  value: 'en-US',
+  configurable: true,
+});

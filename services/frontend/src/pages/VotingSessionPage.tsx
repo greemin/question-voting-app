@@ -7,9 +7,11 @@ import { getSessionData, endSession, checkAdminStatus, createSessionWebSocket } 
 import QuestionForm from '../components/QuestionForm.tsx';
 import QuestionItem from '../components/QuestionItem.tsx';
 import { Question } from '../models/Question';
+import { useTranslation } from '../hooks/useTranslation.ts';
 import './VotingSessionPage.css';
 
 function VotingSessionPage(): JSX.Element {
+  const { t } = useTranslation();
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,7 +58,7 @@ function VotingSessionPage(): JSX.Element {
   }, [sessionId, navigate]);
 
   const handleEndSession = async () => {
-    if (!window.confirm("Are you sure you want to end this voting session? This will delete all questions.")) return;
+    if (!window.confirm(t.endSessionConfirm)) return;
 
     if (!sessionId) return;
     await endSession(sessionId);
@@ -67,10 +69,10 @@ function VotingSessionPage(): JSX.Element {
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
+      toast.success(t.linkCopied);
     } catch (err) {
       console.error('Failed to copy link:', err);
-      toast.error('Failed to copy link');
+      toast.error(t.failedToCopyLink);
     }
   };
 
@@ -78,16 +80,16 @@ function VotingSessionPage(): JSX.Element {
     if (!sessionId) return;
     const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
     if (!adminToken) {
-      toast.error('Admin token not found');
+      toast.error(t.adminTokenNotFound);
       return;
     }
     try {
       const adminUrl = `${window.location.origin}${window.location.pathname}?adminToken=${encodeURIComponent(adminToken)}`;
       await navigator.clipboard.writeText(adminUrl);
-      toast.success('Admin link copied to clipboard!');
+      toast.success(t.adminLinkCopied);
     } catch (err) {
       console.error('Failed to copy admin link:', err);
-      toast.error('Failed to copy admin link');
+      toast.error(t.failedToCopyAdminLink);
     }
   };
 
@@ -121,7 +123,7 @@ function VotingSessionPage(): JSX.Element {
 
           case 'SESSION_ENDED':
             if(!isAdmin) {
-              toast('This session has been ended by the admin.');
+              toast(t.sessionEndedByAdmin);
             }
             navigate('/');
             break;
@@ -152,7 +154,7 @@ function VotingSessionPage(): JSX.Element {
   }, [sessionId, fetchSession, navigate]);
 
   if (loading) {
-    return <div className="loading-session"><p>Loading session...</p></div>;
+    return <div className="loading-session"><p>{t.loadingSession}</p></div>;
   }
 
   const link = window.location.host + window.location.pathname;
@@ -173,15 +175,15 @@ function VotingSessionPage(): JSX.Element {
           <button onClick={handleCopyLink} className="copy-link-button">
             📋
           </button>
-          <button onClick={() => setShowQR((v) => !v)} className="copy-link-button" title="Show QR code">
+          <button onClick={() => setShowQR((v) => !v)} className="copy-link-button" title={t.showQrCode}>
             ▣
           </button>
           {isAdmin && <>
-            <button onClick={handleCopyAdminLink} className="copy-link-button" title="Copy admin link">
+            <button onClick={handleCopyAdminLink} className="copy-link-button" title={t.copyAdminLink}>
               🔑
             </button>
             <button onClick={handleEndSession} className="end-session-button">
-              End Session
+              {t.endSession}
             </button>
           </>}
         </div>
@@ -199,12 +201,12 @@ function VotingSessionPage(): JSX.Element {
         />
 
         <div className="questions-heading">
-          Questions
+          {t.questions}
           <span className="questions-count-badge">{questions.length}</span>
         </div>
 
         {questions.length === 0 ? (
-          <p className="no-questions">No questions yet. Be the first!</p>
+          <p className="no-questions">{t.noQuestionsYet}</p>
         ) : (
           <div className="questions-container">
             {questions.map((q) => (

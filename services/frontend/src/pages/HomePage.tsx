@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSession } from '../api/sessionApi.ts';
+import { useTranslation } from '../hooks/useTranslation.ts';
 import './HomePage.css';
 
 function HomePage(): JSX.Element {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [customSlug, setCustomSlug] = useState<string>('');
   const navigate = useNavigate();
@@ -26,15 +28,15 @@ function HomePage(): JSX.Element {
 
   return (
     <div className="home-page-container">
-      <h1>Question Voting App</h1>
-      <p className="home-tagline">Real-time Q&amp;A for your event</p>
+      <h1>{t.appTitle}</h1>
+      <p className="home-tagline">{t.tagline}</p>
       <div className="home-card">
         <div className="custom-slug-container">
           <input
             type="text"
             value={customSlug}
             onChange={(e) => setCustomSlug(e.target.value)}
-            placeholder="Session title (optional)"
+            placeholder={t.sessionTitlePlaceholder}
             className="custom-slug-input"
           />
         </div>
@@ -43,10 +45,10 @@ function HomePage(): JSX.Element {
           disabled={loading}
           className="start-session-button"
         >
-          {loading ? 'Creating...' : '🚀 Start New Voting Session'}
+          {loading ? t.creating : t.startNewVotingSession}
         </button>
         <p className="home-page-info">
-          Enter a custom name or leave blank to generate a random one.
+          {t.homePageInfo}
         </p>
       </div>
     </div>

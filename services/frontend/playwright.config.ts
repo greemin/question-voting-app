@@ -9,7 +9,11 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:5173',
-    
+
+    // Force locale so E2E assertions match English strings regardless of CI server location.
+    locale: 'en-US',
+    timezoneId: 'UTC',
+
     // Collect trace when retrying the failed test.
     trace: 'on-first-retry',
 

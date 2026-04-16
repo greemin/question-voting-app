@@ -2,6 +2,7 @@
 import React from 'react';
 import { voteQuestion, deleteQuestion } from '../api/sessionApi.ts';
 import { Question } from '../models/Question';
+import { useTranslation } from '../hooks/useTranslation.ts';
 import './QuestionItem.css';
 
 interface QuestionItemProps {
@@ -12,6 +13,7 @@ interface QuestionItemProps {
 }
 
 function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionItemProps): JSX.Element {
+  const { t } = useTranslation();
   const handleVote = async () => {
     await voteQuestion(sessionId, question.id);
     onVoteSuccess();
@@ -25,17 +27,17 @@ function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionI
     <div className="question-item-container">
       <div className="vote-pill">
         <strong data-testid="vote-count">{question.votes}</strong>
-        <span>votes</span>
+        <span>{t.votes}</span>
       </div>
       <div className="question-body">
         <p className="question-text">{question.text}</p>
         <div className="button-group">
           <button onClick={handleVote} data-testid="vote-button" className="vote-button">
-            Vote Up
+            {t.voteUp}
           </button>
           {isAdmin && (
             <button onClick={handleDelete} data-testid="delete-button" className="delete-button">
-              Delete
+              {t.delete}
             </button>
           )}
         </div>

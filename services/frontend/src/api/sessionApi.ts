@@ -1,6 +1,7 @@
 // /frontend/src/api/sessionApi.ts
 import toast from 'react-hot-toast';
 import { SessionData } from '../models/SessionData';
+import { getT } from '../hooks/useTranslation.ts';
 
 const API_BASE = '/api/session';
 
@@ -34,9 +35,9 @@ export const createSession = async (sessionId?: string): Promise<{ sessionId: st
   };
 
   return toast.promise(request(), {
-    loading: 'Creating session...',
-    success: 'Session created!',
-    error: (err) => err.message || 'Failed to create session',
+    loading: getT().creatingSession,
+    success: getT().sessionCreated,
+    error: (err) => err.message || getT().failedToCreateSession,
   });
 };
 
@@ -57,7 +58,7 @@ export const getSessionData = async (sessionId: string): Promise<SessionData> =>
 
     return data;
   } catch (err: any) {
-    toast.error(err.message || 'Failed to load session');
+    toast.error(err.message || getT().failedToLoadSession);
     throw err;
   }
 };
@@ -73,9 +74,9 @@ export const submitQuestion = async (sessionId: string, text: string): Promise<n
   };
 
   return toast.promise(request(), {
-    loading: 'Submitting question...',
-    success: 'Question submitted!',
-    error: (err) => err.message || 'Failed to submit question',
+    loading: getT().submittingQuestion,
+    success: getT().questionSubmitted,
+    error: (err) => err.message || getT().failedToSubmitQuestion,
   });
 };
 
@@ -88,9 +89,9 @@ export const voteQuestion = async (sessionId: string, questionId: string): Promi
   };
 
   return toast.promise(request(), {
-    loading: 'Registering vote...',
-    success: 'Vote registered!',
-    error: (err) => err.message || 'Failed to vote',
+    loading: getT().registeringVote,
+    success: getT().voteRegistered,
+    error: (err) => err.message || getT().failedToVote,
   });
 };
 
@@ -109,9 +110,9 @@ export const deleteQuestion = async (sessionId: string, questionId: string): Pro
   };
 
   return toast.promise(request(), {
-    loading: 'Deleting question...',
-    success: 'Question deleted!',
-    error: (err) => err.message || 'Failed to delete question',
+    loading: getT().deletingQuestion,
+    success: getT().questionDeleted,
+    error: (err) => err.message || getT().failedToDeleteQuestion,
   });
 };
 
@@ -130,9 +131,9 @@ export const endSession = async (sessionId: string): Promise<null> => {
   };
 
   return toast.promise(request(), {
-    loading: 'Ending session...',
-    success: 'Session ended!',
-    error: (err) => err.message || 'Failed to end session',
+    loading: getT().endingSession,
+    success: getT().sessionEnded,
+    error: (err) => err.message || getT().failedToEndSession,
   });
 };
 
@@ -151,7 +152,7 @@ export const checkAdminStatus = async (sessionId: string): Promise<{ isAdmin: bo
         const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/check-admin`, { headers });
         return await handleResponse(response);
     } catch (err: any) {
-        toast.error(err.message || 'Failed to check admin status');
+        toast.error(err.message || getT().failedToCheckAdminStatus);
         throw err;
     }
 };

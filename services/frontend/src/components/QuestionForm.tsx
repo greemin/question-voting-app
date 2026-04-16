@@ -1,6 +1,7 @@
 // /frontend/src/components/QuestionForm.tsx
 import React, { useState } from 'react';
 import { submitQuestion } from '../api/sessionApi.ts';
+import { useTranslation } from '../hooks/useTranslation.ts';
 import './QuestionForm.css';
 
 interface QuestionFormProps {
@@ -9,6 +10,7 @@ interface QuestionFormProps {
 }
 
 function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.Element {
+  const { t } = useTranslation();
   const [text, setText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const QUESTION_MAX_LENGTH = 500;
@@ -29,12 +31,12 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
 
   return (
     <form onSubmit={handleSubmit} className="question-form">
-      <h3>Submit a Question</h3>
+      <h3>{t.submitAQuestion}</h3>
       <input
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Type your question here..."
+        placeholder={t.typeYourQuestionHere}
         disabled={loading}
         className="question-input"
         maxLength={QUESTION_MAX_LENGTH}
@@ -42,7 +44,7 @@ function QuestionForm({ sessionId, onQuestionSubmit }: QuestionFormProps): JSX.E
       <div className="form-footer">
         {text.length > 0 && <span className="character-count">{text.length}/{QUESTION_MAX_LENGTH}</span>}
         <button type="submit" disabled={loading} className="submit-button">
-          {loading ? 'Submitting...' : 'Submit Question'}
+          {loading ? t.submitting : t.submitQuestion}
         </button>
       </div>
     </form>
