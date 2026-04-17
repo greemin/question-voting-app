@@ -115,7 +115,7 @@ This document outlines the development plan for the application. Phases are orga
 
 ---
 
-### 🚀 **Phase 5: Deployment**
+### ✅ 🚀 **Phase 5: Deployment**
 
 *First real deployment to a hosted environment.*
 
@@ -142,7 +142,7 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Point k6 at the production URL and run the session/WebSocket load scenarios.
     -   [x] **Action**: Record baseline metrics (concurrent sessions, connections, response times) to inform future performance decisions.
 
--   [ ] **Cloudflare (post load tests):** Based on load test results, evaluate moving DNS to Cloudflare for free DDoS protection and caching. Requires a custom domain.
+-   [x] **Cloudflare (post load tests):** Load test results (0 errors at 500 VUs, Hetzner DDoS protection in place) show no immediate need. Revisit if the app scales beyond a demo instance.
 
 ---
 
@@ -160,6 +160,8 @@ This document outlines the development plan for the application. Phases are orga
 -   [ ] **WebSocket Session Cache:** Skip the MongoDB lookup on WS connect by caching recently verified session IDs in an in-memory map with a short TTL. At 500 VUs, the session fetch on WS upgrade is the main bottleneck — load test showed p95 WS connect time of 10s on a 2 vCPU box.
 
 -   [ ] **MongoDB Connection Pool Tuning:** Review and tune the Go MongoDB driver's connection pool size (`maxPoolSize`) for high-concurrency workloads. Default pool may be undersized for 500+ concurrent requests, contributing to query queuing under load.
+
+-   [ ] **Cloudflare / Custom Domain (production scale):** For a larger production instance, evaluate moving DNS to Cloudflare for DDoS protection beyond Hetzner's baseline, caching, and hiding the server IP. Requires a custom domain.
 
 -   [ ] **Load Testing:** Write and execute (k6?) load tests on prod enviroment. Test should test how many sessions and users can run concurrently. Decision needs to be made about performance aims. Also resilience against basic DDOS attacks should be tested.
 
