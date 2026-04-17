@@ -119,13 +119,13 @@ This document outlines the development plan for the application. Phases are orga
 
 *First real deployment to a hosted environment.*
 
--   [ ] **Choose a Hosting Provider**
-    -   **Action**: Provision a Hetzner VPS, clone the repo, and configure the `.env` file with production secrets.
-    -   **Action**: Verify MongoDB hosting strategy — managed Atlas free tier or self-hosted on the same VPS.
+-   [x] **Choose a Hosting Provider**
+    -   [x] **Action**: Provision a Hetzner VPS, clone the repo, and configure the `.env` file with production secrets.
+    -   [x] **Action**: Verify MongoDB hosting strategy — managed Atlas free tier or self-hosted on the same VPS.
 
--   [ ] **Provision Production Environment**
-    -   **Action**: Set up production environment variables (MongoDB URI, CORS origin, cookie settings, admin secrets).
-    -   **Action**: Ensure MongoDB runs in auth-enabled mode with a dedicated user for the app.
+-   [.] **Provision Production Environment**
+    -   [x] **Action**: Set up production environment variables (MongoDB URI, CORS origin, cookie settings, admin secrets).
+    -   [x] **Action**: Ensure MongoDB runs in auth-enabled mode with a dedicated user for the app.
     -   **Action**: Configure TLS — HTTPS for the frontend and WSS for WebSocket connections.
 
 -   [ ] **Deploy**
