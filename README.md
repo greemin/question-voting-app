@@ -4,6 +4,9 @@ A real-time, lightweight application for crowdsourcing and ranking questions dur
 
 **Live demo:** https://question-app.duckdns.org
 
+[![CI](https://github.com/greemin/question-voting-app/actions/workflows/ci.yml/badge.svg)](https://github.com/greemin/question-voting-app/actions/workflows/ci.yml)
+[![Publish](https://github.com/greemin/question-voting-app/actions/workflows/publish.yml/badge.svg)](https://github.com/greemin/question-voting-app/actions/workflows/publish.yml)
+
 ## 🛠️ Setup and Installation
 Prerequisites
 
