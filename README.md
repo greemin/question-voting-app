@@ -35,3 +35,7 @@ The frontend is a single-page application (SPA) built with React and bundled wit
     npm install
 
 To stop the application, run `docker compose down`. If you want to wipe the local database completely, run `docker compose down -v`.
+
+## Load Testing
+
+k6 load tests targeting the production environment are in [`k6/`](k6/). See [`k6/README.md`](k6/README.md) for usage.

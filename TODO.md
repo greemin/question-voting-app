@@ -128,20 +128,19 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Ensure MongoDB runs in auth-enabled mode with a dedicated user for the app.
     -   [x] **Action**: Configure TLS — HTTPS for the frontend and WSS for WebSocket connections.
 
--   [.] **Deploy**
-    -   **Action**: Extend the CI workflow to deploy to hosting provider after a successful image build.
+-   [x] **Deploy**
     -   [x] **Action**: Deploy using `docker-compose.prod.yml` — pull latest images and restart containers.
-    -   **Action**: Smoke test the golden path after deploy: create session, submit question, vote, end session.
-    -   **Action**: Verify WebSocket connections work end-to-end in the hosted environment.
+    -   [x] **Action**: Smoke test the golden path after deploy: create session, submit question, vote, end session.
+    -   [x] **Action**: Verify WebSocket connections work end-to-end in the hosted environment.
 
--   [ ] **Observability**
-    -   **Action**: Set up basic logging and error visibility (provider logs or a lightweight tool like Grafana/Loki).
-    -   **Action**: Set up an uptime monitor (e.g. UptimeRobot) to alert on downtime.
+-   [x] **Observability**
+    -   [x] **Action**: Set up basic logging and error visibility (provider logs or a lightweight tool like Grafana/Loki).
+    -   [x] **Action**: Set up an uptime monitor (e.g. UptimeRobot) to alert on downtime.
 
--   [ ] **Load Testing (post-deploy)**
+-   [x] **Load Testing (post-deploy)**
     -   Only meaningful against the real hosted infrastructure — see Long-Term Goals.
-    -   **Action**: Point k6 at the production URL and run the session/WebSocket load scenarios.
-    -   **Action**: Record baseline metrics (concurrent sessions, connections, response times) to inform future performance decisions.
+    -   [x] **Action**: Point k6 at the production URL and run the session/WebSocket load scenarios.
+    -   [x] **Action**: Record baseline metrics (concurrent sessions, connections, response times) to inform future performance decisions.
 
 -   [ ] **Cloudflare (post load tests):** Based on load test results, evaluate moving DNS to Cloudflare for free DDoS protection and caching. Requires a custom domain.
 
@@ -154,6 +153,16 @@ This document outlines the development plan for the application. Phases are orga
 -   [x] **i18n:** Add localization via lazy loaded json files based on browser language.
 -   [x] **Shorten Session URLs:** Change session path from "BASE_URL/votingSession/SESSION_SLUG" to "BASE_URL/SESSION_SLUG"
 
+-   [ ] **CI Auto-Deploy to Hetzner:** Extend the CI workflow to automatically deploy to the VPS after a successful image build (e.g. via SSH + `docker compose pull && up -d`).
+
+-   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
+
+-   [ ] **WebSocket Session Cache:** Skip the MongoDB lookup on WS connect by caching recently verified session IDs in an in-memory map with a short TTL. At 500 VUs, the session fetch on WS upgrade is the main bottleneck — load test showed p95 WS connect time of 10s on a 2 vCPU box.
+
+-   [ ] **MongoDB Connection Pool Tuning:** Review and tune the Go MongoDB driver's connection pool size (`maxPoolSize`) for high-concurrency workloads. Default pool may be undersized for 500+ concurrent requests, contributing to query queuing under load.
+
+-   [ ] **Load Testing:** Write and execute (k6?) load tests on prod enviroment. Test should test how many sessions and users can run concurrently. Decision needs to be made about performance aims. Also resilience against basic DDOS attacks should be tested.
+
 -   [ ] **Separation of Concerns:** The handlers are directly interacting with the storage layer. In a larger application, it would be better to have a service layer in between to handle business logic.
 
 -   [ ] **Voter tracking:** The current implementation stores an array of `voterID`s for each question. This could become inefficient for questions with many votes. A different data structure might be better, or a separate collection/table to track votes.
@@ -162,6 +171,3 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [ ] **Missing Input Validation:** In `CreateSessionHandler`, the `req.SessionID` is checked for length, but not for character validity. The `slugify` function handles some of it, but it's better to be strict about what's allowed. In `SubmitQuestionHandler`, the question text length is checked, but not for malicious content (e.g., XSS). While the frontend is React (which helps prevent XSS), it's good practice to have defense in depth and validate/sanitize on the backend as well.
 
--   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
-
--   [ ] **Load Testing:** Write and execute (k6?) load tests on prod enviroment. Test should test how many sessions and users can run concurrently. Decision needs to be made about performance aims. Also resilience against basic DDOS attacks should be tested.

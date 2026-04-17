@@ -31,3 +31,5 @@ tmp/
 
 playwright-report/
 test-results/
+
+k6/results/*.json
