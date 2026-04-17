@@ -27,7 +27,7 @@ air.log
 tmp/
 
 # Enviroment variable files
-.env
+.env*
 
 playwright-report/
 test-results/

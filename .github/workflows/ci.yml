@@ -12,6 +12,7 @@ on:
       - "LICENSE"
       - "env.example"
       - "docker-compose.prod.yml"
+      - "**/.dockerignore"
   pull_request:
     branches: [master]
     paths-ignore:
@@ -20,6 +21,7 @@ on:
       - "LICENSE"
       - "env.example"
       - "docker-compose.prod.yml"
+      - "**/.dockerignore"
 
 jobs:
   frontend-unit:

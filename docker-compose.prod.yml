@@ -17,13 +17,26 @@ services:
   frontend:
     image: ghcr.io/greemin/question-voting-app/frontend:${TAG:-latest}
     restart: unless-stopped
-    ports:
-      - "80:80"
     environment:
       - ENV=production
       - NODE_ENV=production
     depends_on:
       - backend
+    networks:
+      - frontend-network
+
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
     networks:
       - frontend-network
 
@@ -47,6 +60,8 @@ services:
 
 volumes:
   mongo-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   frontend-network:
