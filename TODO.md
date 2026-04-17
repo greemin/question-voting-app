@@ -123,14 +123,14 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Action**: Provision a Hetzner VPS, clone the repo, and configure the `.env` file with production secrets.
     -   [x] **Action**: Verify MongoDB hosting strategy — managed Atlas free tier or self-hosted on the same VPS.
 
--   [.] **Provision Production Environment**
+-   [x] **Provision Production Environment**
     -   [x] **Action**: Set up production environment variables (MongoDB URI, CORS origin, cookie settings, admin secrets).
     -   [x] **Action**: Ensure MongoDB runs in auth-enabled mode with a dedicated user for the app.
-    -   **Action**: Configure TLS — HTTPS for the frontend and WSS for WebSocket connections.
+    -   [x] **Action**: Configure TLS — HTTPS for the frontend and WSS for WebSocket connections.
 
--   [ ] **Deploy**
+-   [.] **Deploy**
     -   **Action**: Extend the CI workflow to deploy to hosting provider after a successful image build.
-    -   **Action**: Deploy using `docker-compose.prod.yml` — pull latest images and restart containers.
+    -   [x] **Action**: Deploy using `docker-compose.prod.yml` — pull latest images and restart containers.
     -   **Action**: Smoke test the golden path after deploy: create session, submit question, vote, end session.
     -   **Action**: Verify WebSocket connections work end-to-end in the hosted environment.
 
@@ -142,6 +142,8 @@ This document outlines the development plan for the application. Phases are orga
     -   Only meaningful against the real hosted infrastructure — see Long-Term Goals.
     -   **Action**: Point k6 at the production URL and run the session/WebSocket load scenarios.
     -   **Action**: Record baseline metrics (concurrent sessions, connections, response times) to inform future performance decisions.
+
+-   [ ] **Cloudflare (post load tests):** Based on load test results, evaluate moving DNS to Cloudflare for free DDoS protection and caching. Requires a custom domain.
 
 ---
 
