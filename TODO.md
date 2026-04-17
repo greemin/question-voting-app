@@ -74,7 +74,7 @@ This document outlines the development plan for the application. Phases are orga
 
 ---
 
-### ✨ **Phase 3: UX/UI & Feature Enhancements**
+### ✅ ✨ **Phase 3: UX/UI & Feature Enhancements**
 
 *This phase focuses on improving the user experience and visual design.*
 
@@ -96,7 +96,7 @@ This document outlines the development plan for the application. Phases are orga
 
 ---
 
-### 🧪 **Phase 4: Testing & CI/CD Pipeline**
+### ✅ 🧪 **Phase 4: Testing & CI/CD Pipeline**
 
 *This phase ensures the application is reliable and easy to deploy.*
 
