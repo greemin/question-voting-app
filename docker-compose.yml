@@ -1,8 +1,6 @@
 services:
   backend:
-    build:
-      context: ./services/backend
-      dockerfile: Dockerfile
+    image: ghcr.io/greemin/question-voting-app/backend:${TAG:-latest}
     ports:
       - "8081:8081"
     environment:
@@ -18,16 +16,12 @@ services:
       - backend-network
 
   frontend:
-    build:
-      context: ./services/frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/greemin/question-voting-app/frontend:${TAG:-latest}
     ports:
       - "80:80"
     environment:
       - ENV=${ENV}
       - NODE_ENV=${ENV}
-      - VITE_API_URL=${BACKEND_API_URL}
-      - VITE_ALLOWED_HOSTS=${ALLOWED_HOSTS}
     depends_on:
       backend:
         condition: service_started
