@@ -348,6 +348,71 @@ func TestSubmitQuestionHandler(t *testing.T) {
 			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
 		}
 	})
+
+	t.Run("MaxQuestionsReached", func(t *testing.T) {
+		storer.Clear()
+		session := createMockSession(sessionID, adminID, true)
+		session.Questions = make([]models.Question, maxQuestionsPerSession)
+		storer.PreloadSession(session)
+		body := `{"text": "One question too many"}`
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		api.SubmitQuestionHandler(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+		session, _ = storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.Questions) != maxQuestionsPerSession {
+			t.Errorf("Expected question count to remain %d, got %d", maxQuestionsPerSession, len(session.Questions))
+		}
+	})
+
+	t.Run("BodyTooLarge", func(t *testing.T) {
+		storer.Clear()
+		storer.PreloadSession(createMockSession(sessionID, adminID, true))
+		oversizedBody := fmt.Sprintf(`{"text": "%s"}`, strings.Repeat("a", int(maxRequestBodyBytes)))
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(oversizedBody))
+		r.SetPathValue("session_id", sessionID)
+		api.SubmitQuestionHandler(w, r)
+		if w.Code != http.StatusRequestEntityTooLarge && w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 413 or 400 for oversized body, got %d", w.Code)
+		}
+	})
+}
+
+func TestCreateSessionHandler_BodyTooLarge(t *testing.T) {
+	api, _ := setupTestAPI()
+	oversizedBody := fmt.Sprintf(`{"sessionId": "%s"}`, strings.Repeat("a", int(maxRequestBodyBytes)))
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader(oversizedBody))
+	api.CreateSessionHandler(w, r)
+	if w.Code != http.StatusRequestEntityTooLarge && w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 413 or 400 for oversized body, got %d", w.Code)
+	}
+}
+
+func TestVoteQuestionHandler_NoCookie(t *testing.T) {
+	api, storer := setupTestAPI()
+	sessionID := "vote-no-cookie-session"
+	questionID := "00000000-0000-0000-0000-000000000011"
+	storer.PreloadSession(createMockSession(sessionID, "admin", true))
+
+	path := fmt.Sprintf("/api/session/%s/questions/%s/vote", sessionID, questionID)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPut, path, nil)
+	r.SetPathValue("session_id", sessionID)
+	r.SetPathValue("question_id", questionID)
+	// No cookie added — should be rejected
+	api.VoteQuestionHandler(w, r)
+	if w.Code != http.StatusForbidden {
+		t.Errorf("Expected status %d for missing cookie, got %d", http.StatusForbidden, w.Code)
+	}
+	session, _ := storer.LoadSessionData(context.Background(), sessionID)
+	if session.Questions[0].Votes != 10 {
+		t.Errorf("Expected vote count to remain 10, got %d", session.Questions[0].Votes)
+	}
 }
 
 func TestVoteQuestionHandler(t *testing.T) {

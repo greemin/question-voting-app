@@ -43,8 +43,10 @@ var consecutiveHyphens = regexp.MustCompile(`-+`)
 var spaceOrUnderscore = regexp.MustCompile(`[_\s]+`)
 
 const (
-	userSessionIDCookie = "userSessionId"
-	authHeader          = "Authorization"
+	userSessionIDCookie    = "userSessionId"
+	authHeader             = "Authorization"
+	maxRequestBodyBytes    = 4096
+	maxQuestionsPerSession = 200
 )
 
 func slugify(s string) string {
@@ -188,6 +190,7 @@ func (a *API) createSessionWithRetry(ctx context.Context, sessionID, sessionTitl
 func (a *API) CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	a.getUserSessionID(w, r) // Ensure creator also gets a voting cookie
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req models.CreateSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -303,6 +306,7 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("session_id")
 	a.getUserSessionID(w, r) // Ensure user has a session cookie
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var submission models.QuestionSubmission
 	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil || strings.TrimSpace(submission.Text) == "" {
 		http.Error(w, "Invalid request body or empty question", http.StatusBadRequest)
@@ -326,6 +330,11 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 
 	if !sessionData.IsActive {
 		http.Error(w, "Voting session is closed", http.StatusForbidden)
+		return
+	}
+
+	if len(sessionData.Questions) >= maxQuestionsPerSession {
+		http.Error(w, "Session has reached the maximum number of questions", http.StatusForbidden)
 		return
 	}
 
@@ -373,7 +382,12 @@ func (a *API) VoteQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("session_id")
 	questionID := r.PathValue("question_id")
 
-	userID := a.getUserSessionID(w, r)
+	cookie, err := r.Cookie(userSessionIDCookie)
+	if err != nil {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	userID := cookie.Value
 
 	if _, err := uuid.Parse(questionID); err != nil {
 		http.Error(w, "Invalid question ID format", http.StatusBadRequest)
@@ -566,6 +580,7 @@ func (a *API) BanIPHandler(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get(authHeader)
 	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req struct {
 		QuestionID string `json:"questionId"`
 	}
