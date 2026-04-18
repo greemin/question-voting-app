@@ -116,6 +116,28 @@ export const deleteQuestion = async (sessionId: string, questionId: string): Pro
   });
 };
 
+export const banSubmitter = async (sessionId: string, questionId: string): Promise<null> => {
+  const request = async () => {
+    const adminToken = localStorage.getItem(`adminToken_${sessionId}`);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (adminToken) {
+      headers['Authorization'] = `Bearer ${adminToken}`;
+    }
+    const response = await fetch(`${API_BASE}/${encodeURIComponent(sessionId)}/ban`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ questionId }),
+    });
+    return handleResponse(response);
+  };
+
+  return toast.promise(request(), {
+    loading: getT().banningSubmitter,
+    success: getT().submitterBanned,
+    error: (err) => err.message || getT().failedToBanSubmitter,
+  });
+};
+
 export const endSession = async (sessionId: string): Promise<null> => {
   const request = async () => {
     const adminToken = localStorage.getItem(`adminToken_${sessionId}`);

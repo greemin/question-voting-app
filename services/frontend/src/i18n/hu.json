@@ -41,5 +41,9 @@
   "sessionEnded": "Munkamenet befejezve!",
   "failedToEndSession": "Nem sikerült befejezni a munkamenetet",
   "failedToLoadSession": "Nem sikerült betölteni a munkamenetet",
-  "failedToCheckAdminStatus": "Nem sikerült ellenőrizni az adminisztrátori státuszt"
+  "failedToCheckAdminStatus": "Nem sikerült ellenőrizni az adminisztrátori státuszt",
+  "banSubmitter": "Tiltás",
+  "banningSubmitter": "Beküldő tiltása folyamatban...",
+  "submitterBanned": "Beküldő tiltva!",
+  "failedToBanSubmitter": "Nem sikerült tiltani a beküldőt"
 }

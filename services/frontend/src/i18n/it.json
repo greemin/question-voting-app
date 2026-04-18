@@ -41,5 +41,9 @@
   "sessionEnded": "Sessione terminata!",
   "failedToEndSession": "Impossibile terminare la sessione",
   "failedToLoadSession": "Impossibile caricare la sessione",
-  "failedToCheckAdminStatus": "Impossibile verificare lo stato amministratore"
+  "failedToCheckAdminStatus": "Impossibile verificare lo stato amministratore",
+  "banSubmitter": "Blocca",
+  "banningSubmitter": "Blocco autore in corso...",
+  "submitterBanned": "Autore bloccato!",
+  "failedToBanSubmitter": "Impossibile bloccare l'autore"
 }

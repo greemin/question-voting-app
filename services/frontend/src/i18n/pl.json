@@ -41,5 +41,9 @@
   "sessionEnded": "Sesja zakończona!",
   "failedToEndSession": "Nie udało się zakończyć sesji",
   "failedToLoadSession": "Nie udało się załadować sesji",
-  "failedToCheckAdminStatus": "Nie udało się sprawdzić statusu administratora"
+  "failedToCheckAdminStatus": "Nie udało się sprawdzić statusu administratora",
+  "banSubmitter": "Zablokuj",
+  "banningSubmitter": "Blokowanie autora...",
+  "submitterBanned": "Autor zablokowany!",
+  "failedToBanSubmitter": "Nie udało się zablokować autora"
 }

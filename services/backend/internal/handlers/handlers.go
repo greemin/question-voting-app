@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"net"
 	"net/http"
 	"question-voting-app/internal/models"
 	"question-voting-app/internal/storage"
@@ -22,6 +23,20 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
+
+func getClientIP(r *http.Request) string {
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		return strings.SplitN(fwd, ",", 2)[0]
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
 
 var slugInvalidChars = regexp.MustCompile(`[^\p{L}\p{N}\s-]+`)
 var consecutiveHyphens = regexp.MustCompile(`-+`)
@@ -314,11 +329,20 @@ func (a *API) SubmitQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clientIP := getClientIP(r)
+	for _, banned := range sessionData.BannedIPs {
+		if banned == clientIP {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
 	newQuestion := models.Question{
-		ID:     uuid.New().String(),
-		Text:   submission.Text,
-		Votes:  0,
-		Voters: []string{},
+		ID:          uuid.New().String(),
+		Text:        submission.Text,
+		Votes:       0,
+		Voters:      []string{},
+		SubmitterIP: clientIP,
 	}
 
 	sessionData.Questions = append(sessionData.Questions, newQuestion)
@@ -532,6 +556,93 @@ func (a *API) CheckAdminHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"isAdmin": isAdmin})
+}
+
+// BanIPHandler bans the submitter IP of a question and removes all their questions.
+// POST /api/session/{session_id}/ban
+func (a *API) BanIPHandler(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("session_id")
+
+	authHeader := r.Header.Get(authHeader)
+	providedToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+	var req struct {
+		QuestionID string `json:"questionId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.QuestionID == "" {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	sessionData, err := a.Storer.LoadSessionData(r.Context(), sessionID)
+	if err != nil {
+		if isNotFoundError(err) {
+			http.Error(w, "Session not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Failed to load session", http.StatusInternalServerError)
+		return
+	}
+
+	if sessionData.AdminToken != providedToken || providedToken == "" {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+
+	var targetIP string
+	for _, q := range sessionData.Questions {
+		if q.ID == req.QuestionID {
+			targetIP = q.SubmitterIP
+			break
+		}
+	}
+
+	if targetIP == "" {
+		http.Error(w, "Question not found", http.StatusNotFound)
+		return
+	}
+
+	if targetIP == getClientIP(r) {
+		http.Error(w, "Cannot ban yourself", http.StatusForbidden)
+		return
+	}
+
+	for _, ip := range sessionData.BannedIPs {
+		if ip == targetIP {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	sessionData.BannedIPs = append(sessionData.BannedIPs, targetIP)
+
+	var removedIDs []string
+	remaining := []models.Question{}
+	for _, q := range sessionData.Questions {
+		if q.SubmitterIP == targetIP {
+			removedIDs = append(removedIDs, q.ID)
+		} else {
+			remaining = append(remaining, q)
+		}
+	}
+	sessionData.Questions = remaining
+
+	if err := a.Storer.UpdateSessionData(r.Context(), sessionData); err != nil {
+		http.Error(w, "Failed to ban submitter", http.StatusInternalServerError)
+		return
+	}
+
+	if a.Hub != nil {
+		event := map[string]interface{}{
+			"type":    "IP_BANNED",
+			"payload": map[string]interface{}{"questionIds": removedIDs},
+		}
+		if msg, err := json.Marshal(event); err == nil {
+			a.Hub.Broadcast(sessionID, msg)
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ServeWS handles WebSocket requests from the frontend.

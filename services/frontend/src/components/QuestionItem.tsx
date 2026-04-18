@@ -1,6 +1,6 @@
 // /frontend/src/components/QuestionItem.tsx
 import React from 'react';
-import { voteQuestion, deleteQuestion } from '../api/sessionApi.ts';
+import { voteQuestion, deleteQuestion, banSubmitter } from '../api/sessionApi.ts';
 import { Question } from '../models/Question';
 import { useTranslation } from '../i18n/useTranslation.ts';
 import './QuestionItem.css';
@@ -23,6 +23,10 @@ function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionI
     await deleteQuestion(sessionId, question.id);
   };
 
+  const handleBan = async () => {
+    await banSubmitter(sessionId, question.id);
+  };
+
   return (
     <div className="question-item-container">
       <div className="vote-pill">
@@ -38,6 +42,11 @@ function QuestionItem({ sessionId, question, isAdmin, onVoteSuccess }: QuestionI
           {isAdmin && (
             <button onClick={handleDelete} data-testid="delete-button" className="delete-button">
               {t.delete}
+            </button>
+          )}
+          {isAdmin && (
+            <button onClick={handleBan} data-testid="ban-button" className="ban-button">
+              {t.banSubmitter}
             </button>
           )}
         </div>

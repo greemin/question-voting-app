@@ -91,6 +91,9 @@ func SetupRouter(api *handlers.API, corsOrigins string) http.Handler {
 	mux.HandleFunc("DELETE /api/session/{session_id}/questions/{question_id}", api.DeleteQuestionHandler)
 	mux.HandleFunc("PUT /api/session/{session_id}/questions/{question_id}/vote", api.VoteQuestionHandler)
 
+	// Moderation
+	mux.HandleFunc("POST /api/session/{session_id}/ban", api.BanIPHandler)
+
 	// Return the mux wrapped in the CORS middleware
 	return corsHandler(mux)
 }

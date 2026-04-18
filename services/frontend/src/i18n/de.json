@@ -41,5 +41,9 @@
   "sessionEnded": "Sitzung beendet!",
   "failedToEndSession": "Sitzung konnte nicht beendet werden",
   "failedToLoadSession": "Sitzung konnte nicht geladen werden",
-  "failedToCheckAdminStatus": "Admin-Status konnte nicht überprüft werden"
+  "failedToCheckAdminStatus": "Admin-Status konnte nicht überprüft werden",
+  "banSubmitter": "Sperren",
+  "banningSubmitter": "Einreicher wird gesperrt...",
+  "submitterBanned": "Einreicher gesperrt!",
+  "failedToBanSubmitter": "Einreicher konnte nicht gesperrt werden"
 }

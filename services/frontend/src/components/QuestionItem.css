@@ -105,6 +105,21 @@
   color: white;
 }
 
+.ban-button {
+  background: none;
+  border: 1.5px solid #b45309;
+  color: #b45309;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82em;
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.ban-button:hover {
+  background-color: #b45309;
+  color: white;
+}
+
 /* ── Tablet (≤ 640px) ── */
 @media screen and (max-width: 640px) {
   .question-item-container {
@@ -142,7 +157,8 @@
   }
 
   .vote-button,
-  .delete-button {
+  .delete-button,
+  .ban-button {
     padding: 0.3rem 0.65rem;
     font-size: 0.78em;
   }

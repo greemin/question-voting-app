@@ -28,6 +28,7 @@ vi.mock('../../src/api/sessionApi', () => ({
   submitQuestion: vi.fn(),
   voteQuestion: vi.fn(),
   deleteQuestion: vi.fn(),
+  banSubmitter: vi.fn(),
   endSession: vi.fn(),
   checkAdminStatus: vi.fn(),
   createSessionWebSocket: vi.fn(() => ({
@@ -83,7 +84,7 @@ describe('VotingSessionPage', () => {
         <VotingSessionPage />
       </BrowserRouter>
     );
-    
+
     const endSessionButton = await screen.findByText('End Session');
     await act(async () => {
       fireEvent.click(endSessionButton);
@@ -91,6 +92,20 @@ describe('VotingSessionPage', () => {
 
     expect(window.confirm).toHaveBeenCalled();
     expect(sessionApi.endSession).toHaveBeenCalledWith('test-session');
+  });
+
+  it('end session button is not visible to non-admin', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Question 1');
+    expect(screen.queryByText('End Session')).not.toBeInTheDocument();
   });
 });
 

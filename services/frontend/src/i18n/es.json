@@ -41,5 +41,9 @@
   "sessionEnded": "¡Sesión terminada!",
   "failedToEndSession": "Error al terminar la sesión",
   "failedToLoadSession": "Error al cargar la sesión",
-  "failedToCheckAdminStatus": "Error al verificar el estado de administrador"
+  "failedToCheckAdminStatus": "Error al verificar el estado de administrador",
+  "banSubmitter": "Bloquear",
+  "banningSubmitter": "Bloqueando al autor...",
+  "submitterBanned": "¡Autor bloqueado!",
+  "failedToBanSubmitter": "Error al bloquear al autor"
 }

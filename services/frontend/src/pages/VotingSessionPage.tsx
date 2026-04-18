@@ -121,6 +121,10 @@ function VotingSessionPage(): JSX.Element {
             setQuestions((prev) => prev.filter((q) => q.id !== data.payload.id));
             break;
 
+          case 'IP_BANNED':
+            setQuestions((prev) => prev.filter((q) => !data.payload.questionIds.includes(q.id)));
+            break;
+
           case 'SESSION_ENDED':
             if(!isAdmin) {
               toast(t.sessionEndedByAdmin);

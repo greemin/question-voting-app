@@ -471,6 +471,202 @@ func TestEndSessionHandler(t *testing.T) {
 	})
 }
 
+func TestSubmitQuestionHandler_BannedIP(t *testing.T) {
+	api, storer := setupTestAPI()
+	sessionID := "ban-submit-session"
+	bannedIP := "10.0.0.1"
+	session := createMockSession(sessionID, "admin-token", true)
+	session.BannedIPs = []string{bannedIP}
+	storer.PreloadSession(session)
+
+	t.Run("BannedIPRejected", func(t *testing.T) {
+		body := `{"text": "spam question"}`
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		r.Header.Set("X-Real-IP", bannedIP)
+		api.SubmitQuestionHandler(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d for banned IP, got %d", http.StatusForbidden, w.Code)
+		}
+		session, _ := storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.Questions) != 2 {
+			t.Errorf("Expected question count to remain 2, got %d", len(session.Questions))
+		}
+	})
+
+	t.Run("AllowedIPAccepted", func(t *testing.T) {
+		body := `{"text": "legitimate question"}`
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/questions", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		r.Header.Set("X-Real-IP", "10.0.0.2")
+		api.SubmitQuestionHandler(w, r)
+		if w.Code != http.StatusCreated {
+			t.Errorf("Expected status %d for allowed IP, got %d", http.StatusCreated, w.Code)
+		}
+	})
+}
+
+func TestBanIPHandler(t *testing.T) {
+	const (
+		sessionID  = "ban-session"
+		adminToken = "admin-secret"
+		adminIP    = "5.6.7.8"
+		spamIP     = "1.2.3.4"
+		otherIP    = "9.9.9.9"
+		qSpam1     = "00000000-0000-0000-0000-000000000001"
+		qSpam2     = "00000000-0000-0000-0000-000000000002"
+		qOther     = "00000000-0000-0000-0000-000000000003"
+	)
+
+	makeSession := func() *models.SessionData {
+		return &models.SessionData{
+			SessionID:  sessionID,
+			AdminToken: adminToken,
+			IsActive:   true,
+			BannedIPs:  []string{},
+			Questions: []models.Question{
+				{ID: qSpam1, Text: "spam 1", SubmitterIP: spamIP},
+				{ID: qSpam2, Text: "spam 2", SubmitterIP: spamIP},
+				{ID: qOther, Text: "legit question", SubmitterIP: otherIP},
+			},
+		}
+	}
+
+	banRequest := func(api *API, questionID string, requesterIP string) *httptest.ResponseRecorder {
+		body := fmt.Sprintf(`{"questionId": "%s"}`, questionID)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/ban", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		r.Header.Set("Authorization", "Bearer "+adminToken)
+		r.Header.Set("X-Real-IP", requesterIP)
+		api.BanIPHandler(w, r)
+		return w
+	}
+
+	t.Run("Success_RemovesAllQuestionsFromBannedIP", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		storer.PreloadSession(makeSession())
+
+		w := banRequest(api, qSpam1, adminIP)
+
+		if w.Code != http.StatusNoContent {
+			t.Fatalf("Expected status %d, got %d: %s", http.StatusNoContent, w.Code, w.Body.String())
+		}
+		session, _ := storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.Questions) != 1 {
+			t.Errorf("Expected 1 question remaining, got %d", len(session.Questions))
+		}
+		if session.Questions[0].ID != qOther {
+			t.Errorf("Expected legit question to remain, got %q", session.Questions[0].ID)
+		}
+		if len(session.BannedIPs) != 1 || session.BannedIPs[0] != spamIP {
+			t.Errorf("Expected BannedIPs to contain %q, got %v", spamIP, session.BannedIPs)
+		}
+	})
+
+	t.Run("CannotBanYourself", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		// Admin's question uses the same IP as the admin making the request
+		session := makeSession()
+		session.Questions[0].SubmitterIP = adminIP
+		storer.PreloadSession(session)
+
+		w := banRequest(api, qSpam1, adminIP)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+		session, _ = storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.BannedIPs) != 0 {
+			t.Error("Expected no IPs to be banned after self-ban attempt")
+		}
+	})
+
+	t.Run("Unauthorized_NoToken", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		storer.PreloadSession(makeSession())
+
+		body := fmt.Sprintf(`{"questionId": "%s"}`, qSpam1)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/ban", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		r.Header.Set("X-Real-IP", adminIP)
+		api.BanIPHandler(w, r)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+	})
+
+	t.Run("Unauthorized_WrongToken", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		storer.PreloadSession(makeSession())
+
+		body := fmt.Sprintf(`{"questionId": "%s"}`, qSpam1)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/ban", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		r.Header.Set("Authorization", "Bearer wrong-token")
+		r.Header.Set("X-Real-IP", adminIP)
+		api.BanIPHandler(w, r)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+		session, _ := storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.BannedIPs) != 0 {
+			t.Error("Expected no IPs to be banned after unauthorized request")
+		}
+	})
+
+	t.Run("QuestionNotFound", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		storer.PreloadSession(makeSession())
+
+		w := banRequest(api, "00000000-0000-0000-0000-000000000099", adminIP)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("AlreadyBanned_Idempotent", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		session := makeSession()
+		session.BannedIPs = []string{spamIP}
+		storer.PreloadSession(session)
+
+		w := banRequest(api, qSpam1, adminIP)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %d for already-banned IP, got %d", http.StatusNoContent, w.Code)
+		}
+		session, _ = storer.LoadSessionData(context.Background(), sessionID)
+		if len(session.BannedIPs) != 1 {
+			t.Errorf("Expected BannedIPs to still have 1 entry, got %d", len(session.BannedIPs))
+		}
+	})
+
+	t.Run("SessionNotFound", func(t *testing.T) {
+		api, storer := setupTestAPI()
+		storer.Clear()
+
+		body := fmt.Sprintf(`{"questionId": "%s"}`, qSpam1)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/session/"+sessionID+"/ban", strings.NewReader(body))
+		r.SetPathValue("session_id", sessionID)
+		r.Header.Set("Authorization", "Bearer "+adminToken)
+		r.Header.Set("X-Real-IP", adminIP)
+		api.BanIPHandler(w, r)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+		}
+	})
+}
+
 func TestCheckAdminHandler(t *testing.T) {
 	api, storer := setupTestAPI()
 	sessionID := "check-admin-session"

@@ -41,5 +41,9 @@
   "sessionEnded": "Session ended!",
   "failedToEndSession": "Failed to end session",
   "failedToLoadSession": "Failed to load session",
-  "failedToCheckAdminStatus": "Failed to check admin status"
+  "failedToCheckAdminStatus": "Failed to check admin status",
+  "banSubmitter": "Ban",
+  "banningSubmitter": "Banning submitter...",
+  "submitterBanned": "Submitter banned!",
+  "failedToBanSubmitter": "Failed to ban submitter"
 }

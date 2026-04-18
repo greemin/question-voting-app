@@ -41,5 +41,9 @@
   "sessionEnded": "Сессия завершена!",
   "failedToEndSession": "Не удалось завершить сессию",
   "failedToLoadSession": "Не удалось загрузить сессию",
-  "failedToCheckAdminStatus": "Не удалось проверить статус администратора"
+  "failedToCheckAdminStatus": "Не удалось проверить статус администратора",
+  "banSubmitter": "Заблокировать",
+  "banningSubmitter": "Блокировка автора...",
+  "submitterBanned": "Автор заблокирован!",
+  "failedToBanSubmitter": "Не удалось заблокировать автора"
 }
