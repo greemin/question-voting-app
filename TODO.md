@@ -146,34 +146,41 @@ This document outlines the development plan for the application. Phases are orga
 
 ---
 
-### 🔮 **Long-Term Goals & Tech Debt**
+### ✅ 🔍 **Phase 6: Post-Deployment Reevaluation**
 
-*Section for long term todos and general technical debt.*
+*Structured review after first production deployment — verifying what was built, closing gaps identified under real load, and making infrastructure decisions while the codebase is still fresh.*
 
--   [x] **i18n:** Add localization via lazy loaded json files based on browser language.
--   [x] **Shorten Session URLs:** Change session path from "BASE_URL/votingSession/SESSION_SLUG" to "BASE_URL/SESSION_SLUG"
+-   [x] **Load Testing:** k6 scripts written and executed against the Hetzner VPS. Baseline results documented in `k6/results/BASELINE.md`. Key finding: HTTP stays within thresholds at 500 VUs; WS connect time degrades at 250 concurrent WS VUs (p95 = 10s) due to synchronous MongoDB lookup on upgrade — tracked separately under WebSocket hardening.
 
 -   [ ] **Nginx rate limit smoke test (post-deploy):** After deploying, manually verify rate limiting is active by submitting >10 questions in quick succession to a test session and confirming 429 responses appear. A simple curl loop works: `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://your-domain/api/session/TEST/questions -H 'Content-Type: application/json' -d '{"text":"test"}'; done` — expect the first 10-ish to return 201, remainder 429.
 
--   [ ] **CI Auto-Deploy to Hetzner:** Extend the CI workflow to automatically deploy to the VPS after a successful image build (e.g. via SSH + `docker compose pull && up -d`).
-
 -   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
 
--   [ ] **WebSocket hardening (two related items):** At 500 VUs, the session fetch on WS upgrade is the main bottleneck — load test showed p95 WS connect time of 10s on a 2 vCPU box. Two fixes, ~75 lines combined, no new dependencies: (1) **Session cache** — skip the MongoDB lookup on WS connect by caching recently verified session IDs in an in-memory map with a short TTL; invalidate on session end. (2) **Per-IP connection cap** — track open connections per IP in the Hub and reject upgrades above a threshold (e.g. 5) before goroutines are allocated, closing the goroutine exhaustion avenue for flooding attacks.
+-   [ ] **SQLite storage backend:** Add `SQLiteStorer` implementing the existing `Storer` interface as an alternative to MongoDB. Store questions and voters as a JSON column on the sessions table (maps naturally to the current whole-doc-replace update pattern). Replace MongoDB's TTL index with a periodic cleanup goroutine. Wire up via a `DB_DRIVER` env var in `main.go`. Use `modernc.org/sqlite` (pure Go, no CGo). Selectable via `DB_DRIVER` env var alongside MongoDB — not a replacement, just an additional option. When using SQLite the MongoDB container can simply be omitted from the stack.
 
--   [ ] **MongoDB Connection Pool Tuning:** Review and tune the Go MongoDB driver's connection pool size (`maxPoolSize`) for high-concurrency workloads. Default pool may be undersized for 500+ concurrent requests, contributing to query queuing under load.
+---
 
--   [ ] **Cloudflare / Custom Domain (production scale):** For a larger production instance, evaluate moving DNS to Cloudflare for DDoS protection beyond Hetzner's baseline, caching, and hiding the server IP. Requires a custom domain.
+### 🔮 **Backlog, Tech-Debt and Long-Term Goals**
 
--   [ ] **Load Testing:** Write and execute (k6?) load tests on prod enviroment. Test should test how many sessions and users can run concurrently. Decision needs to be made about performance aims. Also resilience against basic DDOS attacks should be tested.
+*Low-urgency items — revisit if the app sees meaningful outside interest or scale.*
 
--   [ ] **Separation of Concerns:** The handlers are directly interacting with the storage layer. In a larger application, it would be better to have a service layer in between to handle business logic.
-
--   [ ] **Voter tracking:** The current implementation stores an array of `voterID`s for each question. This could become inefficient for questions with many votes. A different data structure might be better, or a separate collection/table to track votes.
+-   [x] **i18n:** Add localization via lazy loaded json files based on browser language.
+-   [x] **Shorten Session URLs:** Change session path from "BASE_URL/votingSession/SESSION_SLUG" to "BASE_URL/SESSION_SLUG"
+-   [x] **Insecure Direct Object Reference (IDOR):** Resolved — router migrated to Go 1.22 native path parameters (`{session_id}`, `{question_id}`). All handlers use `r.PathValue()`, no manual path splitting remains.
 
 -   [ ] **IP-based vote deduplication:** Votes are currently deduplicated by `userSessionId` cookie. A script that fetches a fresh cookie per request (one `GET /api/session/{id}` then one `PUT .../vote`) can still cast unlimited votes — nginx rate limiting (30/min) slows this but doesn't stop it. Fix: store the submitter IP on each vote entry and reject if the same IP already voted on that question, mirroring the existing `BannedIPs` / `SubmitterIP` mechanism on questions. Tradeoff: one vote per question per shared IP (office NAT, university networks).
 
--   [ ] **Insecure Direct Object Reference (IDOR):** The URL parsing is done by splitting the path by `/`. This is fragile and can lead to bugs if the URL format changes. For example, `GET /api/session/{sessionId}/questions`, `parts[3]` is assumed to be the `sessionId`. A better approach would be to use a router that supports path parameters, like `gorilla/mux` or `chi`.
+-   [ ] **Missing Input Validation (XSS):** Session ID character validity is handled by `slugify()`. Remaining gap: question text in `SubmitQuestionHandler` is stored as-is with no backend sanitization. React prevents XSS on the frontend, but defence in depth would require sanitizing or escaping on the backend as well.
 
--   [ ] **Missing Input Validation:** In `CreateSessionHandler`, the `req.SessionID` is checked for length, but not for character validity. The `slugify` function handles some of it, but it's better to be strict about what's allowed. In `SubmitQuestionHandler`, the question text length is checked, but not for malicious content (e.g., XSS). While the frontend is React (which helps prevent XSS), it's good practice to have defense in depth and validate/sanitize on the backend as well.
+-   [ ] **WebSocket hardening (two related items):** At 500 VUs, the session fetch on WS upgrade is the main bottleneck — load test showed p95 WS connect time of 10s on a 2 vCPU box. Two fixes, ~75 lines combined, no new dependencies: (1) **Session cache** — skip the MongoDB lookup on WS connect by caching recently verified session IDs in an in-memory map with a short TTL; invalidate on session end. (2) **Per-IP connection cap** — track open connections per IP in the Hub and reject upgrades above a threshold (e.g. 5) before goroutines are allocated, closing the goroutine exhaustion avenue for flooding attacks.
+
+-   [ ] **CI Auto-Deploy to Hetzner:** Extend the CI workflow to automatically deploy to the VPS after a successful image build (e.g. via SSH + `docker compose pull && up -d`).
+
+-   [ ] **MongoDB Connection Pool Tuning:** Review and tune the Go MongoDB driver's connection pool size (`maxPoolSize`) for high-concurrency workloads. Default pool may be undersized for 500+ concurrent requests, contributing to query queuing under load.
+
+-   [ ] **Voter tracking:** The current implementation stores an array of `voterID`s for each question. This could become inefficient for questions with many votes. A different data structure might be better, or a separate collection/table to track votes.
+
+-   [ ] **Separation of Concerns:** The handlers are directly interacting with the storage layer. In a larger application, it would be better to have a service layer in between to handle business logic.
+
+-   [ ] **Cloudflare / Custom Domain (production scale):** For a larger production instance, evaluate moving DNS to Cloudflare for DDoS protection beyond Hetzner's baseline, caching, and hiding the server IP. Requires a custom domain.
 
