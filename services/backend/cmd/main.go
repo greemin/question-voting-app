@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"question-voting-app/internal/config"
@@ -66,6 +68,10 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return rw.ResponseWriter.(http.Hijacker).Hijack()
 }
 
 // SetupRouter configures the API routes and applies CORS middleware.
