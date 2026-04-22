@@ -20,6 +20,7 @@ services:
     environment:
       - ENV=production
       - NODE_ENV=production
+      - APP_NAME=${APP_NAME}
     depends_on:
       - backend
     networks:
