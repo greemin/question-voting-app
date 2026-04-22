@@ -153,12 +153,11 @@ This document outlines the development plan for the application. Phases are orga
 -   [x] **Load Testing:** k6 scripts written and executed against the Hetzner VPS. Baseline results documented in `k6/results/BASELINE.md`. Key finding: HTTP stays within thresholds at 500 VUs; WS connect time degrades at 250 concurrent WS VUs (p95 = 10s) due to synchronous MongoDB lookup on upgrade — tracked separately under WebSocket hardening.
 
 -   [x] **Nginx rate limit smoke test (post-deploy):** After deploying, manually verify each rate limit zone returns 429 (not 503) when exceeded.
-
     -   [x] **Questions (10r/m, burst=5):** `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://question-app.duckdns.org/api/session/<session_id>/questions -H 'Content-Type: application/json' -b 'userSessionId=<cookie>' -d '{"text":"test"}'; done` — expect first 6 (1 + burst) to return 201, remainder 429.
-
     -   [x] **Sessions (10r/m, burst=5):** `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://question-app.duckdns.org/api/session -H 'Content-Type: application/json' -d '{}'; done` — expect first 6 (1 + burst) to return 200 or 201, remainder 429.
-
     -   [x] **Votes (30r/m, burst=10):** First create a question and grab its ID, then: `for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}\n" -X PUT https://question-app.duckdns.org/api/session/<session_id>/questions/<qid>/vote -b 'userSessionId=<cookie>'; done` — expect first 11 (1 + burst) to return 200 or 403 (already voted), remainder 429.
+
+-   [ ] **WebSocket live updates not working in production:** Questions submitted (via browser or curl) are only visible after a page reload — no WS frames reach the browser despite a successful 101 upgrade. Temporary debug logging added to `hub.go` (Register, Unregister, Broadcast, writePump errors). Once root cause is found, remove or reduce that logging to avoid noise in production logs.
 
 -   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
 

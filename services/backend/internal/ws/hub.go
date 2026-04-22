@@ -52,6 +52,7 @@ func (h *Hub) Register(client *Client) {
 		h.rooms[client.SessionID] = make(map[*Client]bool)
 	}
 	h.rooms[client.SessionID][client] = true
+	log.Printf("WS client registered for session %q (total: %d)", client.SessionID, len(h.rooms[client.SessionID]))
 }
 
 // Unregister removes a client from a session's room.
@@ -68,6 +69,7 @@ func (h *Hub) Unregister(client *Client) {
 			}
 		}
 	}
+	log.Printf("WS client unregistered for session %q", client.SessionID)
 }
 
 // Broadcast sends a message to all connected clients in a specific session.
@@ -75,15 +77,15 @@ func (h *Hub) Broadcast(sessionID string, message []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	if clients, ok := h.rooms[sessionID]; ok {
-		for client := range clients {
-			select {
-			case client.Send <- message:
-			default:
-				// If send buffer is full or blocked, assume client is disconnected
-				close(client.Send)
-				delete(clients, client)
-			}
+	clients := h.rooms[sessionID]
+	log.Printf("WS broadcast to session %q: %d client(s)", sessionID, len(clients))
+	for client := range clients {
+		select {
+		case client.Send <- message:
+		default:
+			// If send buffer is full or blocked, assume client is disconnected
+			close(client.Send)
+			delete(clients, client)
 		}
 	}
 }
@@ -140,11 +142,13 @@ func (c *Client) writePump() {
 
 		w, err := c.Conn.NextWriter(websocket.TextMessage)
 		if err != nil {
+			log.Printf("WS writePump NextWriter error for session %q: %v", c.SessionID, err)
 			return
 		}
 		w.Write(message)
 
 		if err := w.Close(); err != nil {
+			log.Printf("WS writePump Close error for session %q: %v", c.SessionID, err)
 			return
 		}
 	}
