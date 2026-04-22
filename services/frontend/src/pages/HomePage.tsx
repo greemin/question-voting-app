@@ -11,7 +11,7 @@ function HomePage(): JSX.Element {
   const [customSlug, setCustomSlug] = useState<string>('');
   const navigate = useNavigate();
 
-    const appName = import.meta.env.VITE_APP_NAME ?? 'Question Voting App';
+  const appName = (window as any).__APP_NAME__ ?? import.meta.env.VITE_APP_NAME ?? 'Question Voting App';
   
     useEffect(() => {
       return () => {
