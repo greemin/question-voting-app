@@ -152,7 +152,13 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [x] **Load Testing:** k6 scripts written and executed against the Hetzner VPS. Baseline results documented in `k6/results/BASELINE.md`. Key finding: HTTP stays within thresholds at 500 VUs; WS connect time degrades at 250 concurrent WS VUs (p95 = 10s) due to synchronous MongoDB lookup on upgrade — tracked separately under WebSocket hardening.
 
--   [ ] **Nginx rate limit smoke test (post-deploy):** After deploying, manually verify rate limiting is active by submitting >10 questions in quick succession to a test session and confirming 429 responses appear. A simple curl loop works: `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://your-domain/api/session/TEST/questions -H 'Content-Type: application/json' -d '{"text":"test"}'; done` — expect the first 10-ish to return 201, remainder 429.
+-   [ ] **Nginx rate limit smoke test (post-deploy):** After deploying, manually verify each rate limit zone returns 429 (not 503) when exceeded.
+
+    -   [ ] **Questions (10r/m, burst=5):** `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://question-app.duckdns.org/api/session/<session_id>/questions -H 'Content-Type: application/json' -b 'userSessionId=<cookie>' -d '{"text":"test"}'; done` — expect first 6 (1 + burst) to return 201, remainder 429.
+
+    -   [ ] **Sessions (10r/m, burst=5):** `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://question-app.duckdns.org/api/session -H 'Content-Type: application/json' -d '{}'; done` — expect first 6 (1 + burst) to return 200 or 201, remainder 429.
+
+    -   [ ] **Votes (30r/m, burst=10):** First create a question and grab its ID, then: `for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://question-app.duckdns.org/api/session/<session_id>/questions/<qid>/vote -b 'userSessionId=<cookie>'; done` — expect first 11 (1 + burst) to return 200 or 409 (already voted), remainder 429.
 
 -   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
 
