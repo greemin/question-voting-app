@@ -159,7 +159,7 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [o] **WebSocket live updates not working in production:** Questions submitted (via browser or curl) are only visible after a page reload — no WS frames reach the browser despite a successful 101 upgrade. Temporary debug logging added to `hub.go` (Register, Unregister, Broadcast, writePump errors).
     -   [ ] **Fix e2e Test:** - Fix worked on pi enviroment, but local e2e test failed. Non false positive e2e test for this issue is needed. Plus playwright needs to wether frontend runs on port 80 or 5173 (nginx are dev).
-    -   [ ] **Remove logging noise:** -  Once root cause is found, remove or reduce that logging to avoid noise in production logs. Reevalute backend logging, since backend is generally really quiet.
+    -   [ ] **Remove logging noise:** -  Once root cause is found, remove or reduce that logging to avoid noise in production logs. Reevalute backend logging, since backend is generally really quiet. Alternatively make nginx logging similarly less verbose.
 
 -   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
 
