@@ -85,7 +85,6 @@ func (h *Hub) Broadcast(sessionID string, message []byte) {
 	defer h.mu.RUnlock()
 
 	clients := h.rooms[sessionID]
-	log.Printf("WS broadcast to session %q: %d client(s)", sessionID, len(clients))
 	for client := range clients {
 		select {
 		case client.Send <- message:

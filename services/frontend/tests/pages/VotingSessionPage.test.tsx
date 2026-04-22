@@ -22,6 +22,15 @@ vi.mock('react-router-dom', () => ({
   useSearchParams: () => mockUseSearchParams(),
 }));
 
+const makeMockWs = () => ({
+  onmessage: null as ((e: MessageEvent) => void) | null,
+  onerror: null as ((e: Event) => void) | null,
+  onclose: null as ((e: CloseEvent) => void) | null,
+  onopen: null as ((e: Event) => void) | null,
+  close: vi.fn(),
+  readyState: 1, // WebSocket.OPEN
+});
+
 vi.mock('../../src/api/sessionApi', () => ({
   createSession: vi.fn(),
   getSessionData: vi.fn(),
@@ -31,13 +40,7 @@ vi.mock('../../src/api/sessionApi', () => ({
   banSubmitter: vi.fn(),
   endSession: vi.fn(),
   checkAdminStatus: vi.fn(),
-  createSessionWebSocket: vi.fn(() => ({
-    onmessage: null,
-    onerror: null,
-    close: vi.fn(),
-    readyState: 1, // WebSocket.OPEN
-    onopen: null,
-  })),
+  createSessionWebSocket: vi.fn(() => makeMockWs()),
 }));
 
 const mockSessionData: SessionData = {
@@ -232,5 +235,70 @@ describe('admin token from URL', () => {
 
     await screen.findByText('Question 1');
     expect(localStorage.getItem('adminToken_test-session')).toBe('url-token');
+  });
+});
+
+describe('WebSocket reconnection', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+    localStorage.clear();
+  });
+
+  it('reconnects after WS closes', async () => {
+    vi.useFakeTimers();
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    await screen.findByText('Question 1');
+    expect(sessionApi.createSessionWebSocket).toHaveBeenCalledTimes(1);
+
+    const firstWs = (sessionApi.createSessionWebSocket as Mock).mock.results[0].value;
+
+    // Simulate server closing the connection (e.g. nginx idle timeout)
+    act(() => { firstWs.onclose?.({} as CloseEvent); });
+
+    // Reconnect timer fires after 3s
+    await act(async () => { vi.advanceTimersByTime(3000); });
+
+    expect(sessionApi.createSessionWebSocket).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reconnect after component unmounts', async () => {
+    vi.useFakeTimers();
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    const { unmount } = render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    await screen.findByText('Question 1');
+
+    const firstWs = (sessionApi.createSessionWebSocket as Mock).mock.results[0].value;
+
+    unmount();
+
+    // onclose fires after unmount cleanup nulled it — should not reconnect
+    act(() => { firstWs.onclose?.({} as CloseEvent); });
+    await act(async () => { vi.advanceTimersByTime(3000); });
+
+    expect(sessionApi.createSessionWebSocket).toHaveBeenCalledTimes(1);
   });
 });
