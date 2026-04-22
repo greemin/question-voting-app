@@ -1,5 +1,5 @@
 // /frontend/src/pages/HomePage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSession } from '../api/sessionApi.ts';
 import { useTranslation } from '../i18n/useTranslation.ts';
@@ -10,6 +10,14 @@ function HomePage(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [customSlug, setCustomSlug] = useState<string>('');
   const navigate = useNavigate();
+
+    const appName = import.meta.env.VITE_APP_NAME ?? 'Question Voting App';
+  
+    useEffect(() => {
+      return () => {
+        document.title = appName;
+      };
+    }, []);
 
   const handleCreateSession = async () => {
     setLoading(true);

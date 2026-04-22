@@ -31,6 +31,17 @@ function VotingSessionPage(): JSX.Element {
     }
   }, []);
 
+  const appName = import.meta.env.VITE_APP_NAME ?? 'Question Voting App';
+
+  useEffect(() => {
+    if (sessionTitle) {
+      document.title = `${appName} - ${sessionTitle}`;
+    }
+    return () => {
+      document.title = appName;
+    };
+  }, [sessionTitle]);
+
   const fetchSession = useCallback(async () => {
     try {
       if (!sessionId) return;
