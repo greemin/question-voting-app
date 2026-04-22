@@ -79,7 +79,6 @@ jobs:
 
   e2e:
     name: E2E Tests
-    if: true
     runs-on: ubuntu-latest
     env:
       MONGO_INITDB_ROOT_USERNAME: ciroot
@@ -91,6 +90,7 @@ jobs:
       BASE_URL: http://localhost
       ENV: production
       BACKEND_API_URL: http://backend:8081
+      APP_NAME: CI Question App
       ALLOWED_HOSTS: ""
     steps:
       - uses: actions/checkout@v4
