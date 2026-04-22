@@ -25,8 +25,11 @@ COPY --from=builder /app/favicon.ico /usr/share/nginx/html/favicon.ico
 # Copy the custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Entrypoint patches index.html with APP_NAME at container startup
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose port 80
 EXPOSE 80
 
-# Command to start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/entrypoint.sh"]

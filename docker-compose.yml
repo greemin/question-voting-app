@@ -22,6 +22,7 @@ services:
     environment:
       - ENV=${ENV}
       - NODE_ENV=${ENV}
+      - APP_NAME=${APP_NAME}
     depends_on:
       backend:
         condition: service_started
