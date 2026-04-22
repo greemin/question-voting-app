@@ -1,4 +1,29 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+// Injects a script before page load that tracks all WebSocket instances on window._wsInstances.
+async function trackWebSockets(page: Page) {
+  await page.addInitScript(() => {
+    (window as any)._wsInstances = [];
+    const OrigWS = window.WebSocket;
+    function TrackedWS(this: WebSocket, url: string, protocols?: string | string[]) {
+      const ws = new OrigWS(url, protocols);
+      (window as any)._wsInstances.push(ws);
+      return ws;
+    }
+    TrackedWS.prototype = OrigWS.prototype;
+    TrackedWS.CONNECTING = OrigWS.CONNECTING;
+    TrackedWS.OPEN = OrigWS.OPEN;
+    TrackedWS.CLOSING = OrigWS.CLOSING;
+    TrackedWS.CLOSED = OrigWS.CLOSED;
+    (window as any).WebSocket = TrackedWS;
+  });
+}
+
+async function closeAllWebSockets(page: Page) {
+  await page.evaluate(() => {
+    ((window as any)._wsInstances as WebSocket[]).forEach(ws => ws.close());
+  });
+}
 
 test('Host and User interact in real-time', async ({ browser }) => {
   // Create two isolated browser contexts (simulating two different users)
@@ -44,6 +69,56 @@ test('Host and User interact in real-time', async ({ browser }) => {
       await hostPage.getByRole('button', { name: /end session/i }).click();
     } catch (e) {
       console.log('Cleanup: Could not click End Session (test may have failed early).');
+    }
+  }
+});
+
+test('live updates resume after WebSocket reconnection', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const userContext = await browser.newContext();
+
+  const hostPage = await hostContext.newPage();
+  const userPage = await userContext.newPage();
+
+  // Track WS instances so we can close them to simulate an nginx timeout.
+  await trackWebSockets(hostPage);
+
+  const sessionSlug = `e2e-reconnect-${Date.now()}`;
+
+  try {
+    // 1. Host creates session
+    await hostPage.goto('/');
+    await hostPage.getByRole('textbox').fill(sessionSlug);
+    await hostPage.getByRole('button', { name: /new voting session/i }).click();
+    await hostPage.waitForURL(new RegExp(`.*${sessionSlug}.*`));
+    const sessionUrl = hostPage.url();
+
+    // 2. User joins
+    await userPage.goto(sessionUrl);
+
+    // 3. Baseline: first question appears on host via WS
+    const firstQuestion = 'Question before reconnect';
+    await userPage.getByRole('textbox').fill(firstQuestion);
+    await userPage.getByRole('button', { name: /ask|submit/i }).click();
+    await expect(hostPage.getByText(firstQuestion)).toBeVisible();
+
+    // 4. Simulate nginx idle timeout — close all WS connections on the host page
+    await closeAllWebSockets(hostPage);
+
+    // 5. Wait for reconnect (3s timer + buffer)
+    await hostPage.waitForTimeout(4000);
+
+    // 6. Second question must appear on host in real-time via the reconnected WS
+    const secondQuestion = 'Question after reconnect';
+    await userPage.getByRole('textbox').fill(secondQuestion);
+    await userPage.getByRole('button', { name: /ask|submit/i }).click();
+    await expect(hostPage.getByText(secondQuestion)).toBeVisible();
+  } finally {
+    try {
+      hostPage.once('dialog', dialog => dialog.accept());
+      await hostPage.getByRole('button', { name: /end session/i }).click();
+    } catch (e) {
+      console.log('Cleanup: Could not click End Session.');
     }
   }
 });

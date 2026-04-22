@@ -4,8 +4,15 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
+)
+
+var (
+	writeWait  = 10 * time.Second
+	pongWait   = 60 * time.Second
+	pingPeriod = 54 * time.Second // must be less than pongWait
 )
 
 // Client represents a single connected user.
@@ -118,6 +125,11 @@ func (c *Client) readPump() {
 		c.Hub.Unregister(c)
 		c.Conn.Close()
 	}()
+	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.Conn.SetPongHandler(func(string) error {
+		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
 	for {
 		_, _, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -131,25 +143,32 @@ func (c *Client) readPump() {
 
 // writePump sends messages from the hub to the client.
 func (c *Client) writePump() {
-	defer c.Conn.Close()
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.Conn.Close()
+	}()
 	for {
-		message, ok := <-c.Send
-		if !ok {
-			// Hub closed the channel
-			c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-			return
-		}
-
-		w, err := c.Conn.NextWriter(websocket.TextMessage)
-		if err != nil {
-			log.Printf("WS writePump NextWriter error for session %q: %v", c.SessionID, err)
-			return
-		}
-		w.Write(message)
-
-		if err := w.Close(); err != nil {
-			log.Printf("WS writePump Close error for session %q: %v", c.SessionID, err)
-			return
+		select {
+		case message, ok := <-c.Send:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+			w.Write(message)
+			if err := w.Close(); err != nil {
+				return
+			}
+		case <-ticker.C:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
 		}
 	}
 }

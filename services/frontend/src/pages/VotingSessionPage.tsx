@@ -99,53 +99,69 @@ function VotingSessionPage(): JSX.Element {
 
     if (!sessionId) return;
 
-    const ws = createSessionWebSocket(sessionId);
+    let ws: WebSocket;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let unmounted = false;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+    const connect = () => {
+      ws = createSessionWebSocket(sessionId);
 
-        switch (data.type) {
-          case 'QUESTION_ADDED':
-            setQuestions((prev) => [...prev, data.payload].sort((a, b) => b.votes - a.votes));
-            break;
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
 
-          case 'VOTE_UPDATED':
-            setQuestions((prev) => {
-              const updated = prev.map((q) => (q.id === data.payload.id ? data.payload : q));
-              return updated.sort((a, b) => b.votes - a.votes);
-            });
-            break;
+          switch (data.type) {
+            case 'QUESTION_ADDED':
+              setQuestions((prev) => [...prev, data.payload].sort((a, b) => b.votes - a.votes));
+              break;
 
-          case 'QUESTION_DELETED':
-            setQuestions((prev) => prev.filter((q) => q.id !== data.payload.id));
-            break;
+            case 'VOTE_UPDATED':
+              setQuestions((prev) => {
+                const updated = prev.map((q) => (q.id === data.payload.id ? data.payload : q));
+                return updated.sort((a, b) => b.votes - a.votes);
+              });
+              break;
 
-          case 'IP_BANNED':
-            setQuestions((prev) => prev.filter((q) => !data.payload.questionIds.includes(q.id)));
-            break;
+            case 'QUESTION_DELETED':
+              setQuestions((prev) => prev.filter((q) => q.id !== data.payload.id));
+              break;
 
-          case 'SESSION_ENDED':
-            if(!isAdmin) {
-              toast(t.sessionEndedByAdmin);
-            }
-            navigate('/');
-            break;
+            case 'IP_BANNED':
+              setQuestions((prev) => prev.filter((q) => !data.payload.questionIds.includes(q.id)));
+              break;
 
-          default:
-            console.warn('Unknown WebSocket event:', data.type);
+            case 'SESSION_ENDED':
+              if(!isAdmin) {
+                toast(t.sessionEndedByAdmin);
+              }
+              navigate('/');
+              break;
+
+            default:
+              console.warn('Unknown WebSocket event:', data.type);
+          }
+        } catch (err) {
+          console.error('Failed to parse WebSocket message:', err);
         }
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
+      };
+
+      ws.onerror = (error) => console.error('WebSocket error:', error);
+
+      ws.onclose = () => {
+        if (!unmounted) {
+          reconnectTimer = setTimeout(connect, 3000);
+        }
+      };
     };
 
-    ws.onerror = (error) => console.error('WebSocket error:', error);
+    connect();
 
     return () => {
-      // Clear handlers to avoid memory leaks or state updates on unmounted components
+      unmounted = true;
+      if (reconnectTimer !== null) clearTimeout(reconnectTimer);
       ws.onmessage = null;
       ws.onerror = null;
+      ws.onclose = null;
 
       // If the socket is still connecting, waiting for it to open before closing
       // prevents browser console errors ("connection interrupted") in React Strict Mode.
