@@ -157,8 +157,9 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Sessions (10r/m, burst=5):** `for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code}\n" -X POST https://question-app.duckdns.org/api/session -H 'Content-Type: application/json' -d '{}'; done` — expect first 6 (1 + burst) to return 200 or 201, remainder 429.
     -   [x] **Votes (30r/m, burst=10):** First create a question and grab its ID, then: `for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}\n" -X PUT https://question-app.duckdns.org/api/session/<session_id>/questions/<qid>/vote -b 'userSessionId=<cookie>'; done` — expect first 11 (1 + burst) to return 200 or 403 (already voted), remainder 429.
 
--   [o] **WebSocket live updates not working in production:** Questions submitted (via browser or curl) are only visible after a page reload — no WS frames reach the browser despite a successful 101 upgrade. Temporary debug logging added to `hub.go` (Register, Unregister, Broadcast, writePump errors). Once root cause is found, remove or reduce that logging to avoid noise in production logs.
+-   [o] **WebSocket live updates not working in production:** Questions submitted (via browser or curl) are only visible after a page reload — no WS frames reach the browser despite a successful 101 upgrade. Temporary debug logging added to `hub.go` (Register, Unregister, Broadcast, writePump errors).
     -   [ ] **Fix e2e Test:** - Fix worked on pi enviroment, but local e2e test failed. Non false positive e2e test for this issue is needed.
+    -   [ ] **Remove logging noise:** -  Once root cause is found, remove or reduce that logging to avoid noise in production logs. Reevalute backend logging, since backend is generally really quiet.
 
 -   [ ] **E2E Tests in CI:** The Playwright e2e job is currently disabled (`if: false` in `ci.yml`) due to flaky startup timing — the docker stack (especially MongoDB) takes longer to initialise on cold CI runners than the wait timeout allows. Fix options: tune timeouts further, add per-service healthcheck polling, or use a pre-built image cache to speed up the stack startup.
 
