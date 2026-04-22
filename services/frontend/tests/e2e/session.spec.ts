@@ -25,6 +25,24 @@ async function closeAllWebSockets(page: Page) {
   });
 }
 
+test('document title reflects APP_NAME on home page and session page', async ({ page }) => {
+  const appName = process.env.APP_NAME || 'Question Voting App';
+  const sessionSlug = `e2e-title-${Date.now()}`;
+
+  await page.goto('/');
+  expect(await page.title()).toBe(appName);
+
+  await page.getByRole('textbox').fill(sessionSlug);
+  await page.getByRole('button', { name: /new voting session/i }).click();
+  await page.waitForURL(new RegExp(`.*${sessionSlug}.*`));
+
+  await expect(page).toHaveTitle(`${appName} - ${sessionSlug}`);
+
+  // Cleanup
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: /end session/i }).click();
+});
+
 test('Host and User interact in real-time', async ({ browser }) => {
   // Create two isolated browser contexts (simulating two different users)
   const hostContext = await browser.newContext();

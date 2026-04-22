@@ -15,6 +15,15 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../../src/api/sessionApi');
 
 describe('HomePage', () => {
+  it('sets document title on mount', () => {
+    render(
+      <BrowserRouter>
+        <HomePage />
+      </BrowserRouter>
+    );
+    expect(document.title).toBe('Question Voting App');
+  });
+
   it('renders the main heading and button', () => {
     render(
       <BrowserRouter>

@@ -14,9 +14,7 @@ function HomePage(): JSX.Element {
   const appName = (window as any).__APP_NAME__ ?? import.meta.env.VITE_APP_NAME ?? 'Question Voting App';
   
     useEffect(() => {
-      return () => {
-        document.title = appName;
-      };
+      document.title = appName;
     }, []);
 
   const handleCreateSession = async () => {

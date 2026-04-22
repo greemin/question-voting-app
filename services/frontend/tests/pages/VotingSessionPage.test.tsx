@@ -1,6 +1,6 @@
 // /frontend/tests/pages/VotingSessionPage.test.tsx
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/preact';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/preact';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { vi, Mock } from 'vitest';
 import VotingSessionPage from '../../src/pages/VotingSessionPage';
@@ -235,6 +235,42 @@ describe('admin token from URL', () => {
 
     await screen.findByText('Question 1');
     expect(localStorage.getItem('adminToken_test-session')).toBe('url-token');
+  });
+});
+
+describe('document title', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('sets title to AppName - SessionTitle after session loads', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Question 1');
+    await waitFor(() => expect(document.title).toBe('Question Voting App - Test Session'));
+  });
+
+  it('resets title to AppName on unmount', async () => {
+    (sessionApi.getSessionData as Mock).mockResolvedValue(mockSessionData);
+    (sessionApi.checkAdminStatus as Mock).mockResolvedValue({ isAdmin: false });
+
+    const { unmount } = render(
+      <BrowserRouter>
+        <VotingSessionPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Question 1');
+    unmount();
+    expect(document.title).toBe('Question Voting App');
   });
 });
 

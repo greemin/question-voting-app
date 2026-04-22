@@ -163,6 +163,8 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [x] **E2E Tests in CI:** Re-enabled. Root cause of original flakiness: GHCR images didn't exist yet on first attempt, forcing a local build that timed out on cold runners. Now that images are always pre-built in GHCR, startup is ~9s. `MONGO_HEALTHCHECK_START_PERIOD: 20s` ensures MongoDB is ready before the backend starts.
 
+-   [x] **Fix document title config** Custom document title does not work on HomePage. Fix it and add tests.
+
 -   [ ] **SQLite storage backend:** Add `SQLiteStorer` implementing the existing `Storer` interface as an alternative to MongoDB. Store questions and voters as a JSON column on the sessions table (maps naturally to the current whole-doc-replace update pattern). Replace MongoDB's TTL index with a periodic cleanup goroutine. Wire up via a `DB_DRIVER` env var in `main.go`. Use `modernc.org/sqlite` (pure Go, no CGo). Selectable via `DB_DRIVER` env var alongside MongoDB — not a replacement, just an additional option. When using SQLite the MongoDB container can simply be omitted from the stack.
 
 ---
