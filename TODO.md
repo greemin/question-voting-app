@@ -175,6 +175,7 @@ This document outlines the development plan for the application. Phases are orga
 -   [x] **Shorten Session URLs:** Change session path from "BASE_URL/votingSession/SESSION_SLUG" to "BASE_URL/SESSION_SLUG"
 -   [x] **Insecure Direct Object Reference (IDOR):** Resolved — router migrated to Go 1.22 native path parameters (`{session_id}`, `{question_id}`). All handlers use `r.PathValue()`, no manual path splitting remains.
 -   [x] **Add document title config** Browser document title can be set via APP_NAME env variable.
+-   [x] **Add docker image hash to asset file names** Identifies builds and handles cache busting.
 
 -   [ ] **IP-based vote deduplication:** Votes are currently deduplicated by `userSessionId` cookie. A script that fetches a fresh cookie per request (one `GET /api/session/{id}` then one `PUT .../vote`) can still cast unlimited votes — nginx rate limiting (30/min) slows this but doesn't stop it. Fix: store the submitter IP on each vote entry and reject if the same IP already voted on that question, mirroring the existing `BannedIPs` / `SubmitterIP` mechanism on questions. Tradeoff: one vote per question per shared IP (office NAT, university networks).
 
