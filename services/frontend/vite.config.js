@@ -1,8 +1,19 @@
 import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 
+const buildSha = process.env.VITE_BUILD_SHA || 'local';
+
 export default defineConfig({
   plugins: [preact()],
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-[hash]-${buildSha}.js`,
+        chunkFileNames: `assets/[name]-[hash]-${buildSha}.js`,
+        assetFileNames: `assets/[name]-[hash]-${buildSha}[extname]`,
+      },
+    },
+  },
   resolve: {
     alias: {
       'react': 'preact/compat',

@@ -12,6 +12,9 @@ RUN npm install
 # Copy the rest of the source code
 COPY . .
 
+ARG VITE_BUILD_SHA
+ENV VITE_BUILD_SHA=${VITE_BUILD_SHA}
+
 # Build the application
 RUN npm run build
 
