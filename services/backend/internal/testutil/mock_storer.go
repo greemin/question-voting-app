@@ -5,8 +5,7 @@ import (
 	"context"
 	"fmt"
 	"question-voting-app/internal/models"
-
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"question-voting-app/internal/storage"
 )
 
 // MockStorer simulates the storage layer using an in-memory map.
@@ -31,7 +30,7 @@ func (ms *MockStorer) ConfigureIndexes(ctx context.Context) error {
 func (ms *MockStorer) LoadSessionData(ctx context.Context, sessionID string) (*models.SessionData, error) {
 	data, exists := ms.sessions[sessionID]
 	if !exists {
-		return nil, fmt.Errorf("session not found: %s", sessionID)
+		return nil, fmt.Errorf("session not found: %w", storage.ErrNotFound)
 	}
 	// Return a copy to prevent test side effects
 	dataCopy := *data
@@ -41,11 +40,7 @@ func (ms *MockStorer) LoadSessionData(ctx context.Context, sessionID string) (*m
 // CreateSessionData simulates creating a document, returning a duplicate key error if it exists.
 func (ms *MockStorer) CreateSessionData(ctx context.Context, data *models.SessionData) error {
 	if _, exists := ms.sessions[data.SessionID]; exists {
-		return mongo.WriteException{
-			WriteErrors: []mongo.WriteError{
-				{Code: 11000},
-			},
-		}
+		return fmt.Errorf("session already exists: %w", storage.ErrDuplicateKey)
 	}
 	ms.sessions[data.SessionID] = data
 	return nil
@@ -54,7 +49,7 @@ func (ms *MockStorer) CreateSessionData(ctx context.Context, data *models.Sessio
 // UpdateSessionData implements the Storer interface by writing to the map.
 func (ms *MockStorer) UpdateSessionData(ctx context.Context, data *models.SessionData) error {
 	if _, exists := ms.sessions[data.SessionID]; !exists {
-		return fmt.Errorf("session not found, cannot update: %s", data.SessionID)
+		return fmt.Errorf("session not found: %w", storage.ErrNotFound)
 	}
 	ms.sessions[data.SessionID] = data
 	return nil
@@ -63,7 +58,7 @@ func (ms *MockStorer) UpdateSessionData(ctx context.Context, data *models.Sessio
 // DeleteSessionData implements the Storer interface by removing the entry from the map.
 func (ms *MockStorer) DeleteSessionData(ctx context.Context, sessionID string) error {
 	if _, exists := ms.sessions[sessionID]; !exists {
-		return fmt.Errorf("session not found, cannot delete: %s", sessionID)
+		return fmt.Errorf("session not found: %w", storage.ErrNotFound)
 	}
 	delete(ms.sessions, sessionID)
 	return nil
@@ -83,7 +78,7 @@ func (ms *MockStorer) Clear() {
 	ms.sessions = make(map[string]*models.SessionData)
 }
 
-// FindSessionByAdminID is a helper for finding a session for testing purposes.
+// FindSessionByAdminToken is a helper for finding a session for testing purposes.
 func (ms *MockStorer) FindSessionByAdminToken(AdminToken string) *models.SessionData {
 	for _, s := range ms.sessions {
 		if s.AdminToken == AdminToken {

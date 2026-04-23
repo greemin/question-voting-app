@@ -21,7 +21,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func getClientIP(r *http.Request) string {
@@ -97,20 +96,11 @@ func newSessionData(sessionID, sessionTitle string) *models.SessionData {
 }
 
 func isNotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-	// We keep the "not found" string check here as a fallback for the mock storer used in tests
-	return errors.Is(err, mongo.ErrNoDocuments) || strings.Contains(strings.ToLower(err.Error()), "not found")
+	return err != nil && errors.Is(err, storage.ErrNotFound)
 }
 
 func isDuplicateKeyError(err error) bool {
-	if mongo.IsDuplicateKeyError(err) {
-		return true
-	}
-	// Fallback for older mongo versions or weirdly wrapped errors that don't unwrap to a mongo.WriteException.
-	// The error code for a duplicate key error is 11000.
-	return strings.Contains(err.Error(), "E11000")
+	return err != nil && errors.Is(err, storage.ErrDuplicateKey)
 }
 
 // API holds the dependencies for the API handlers.

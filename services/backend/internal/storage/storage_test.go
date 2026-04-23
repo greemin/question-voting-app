@@ -4,6 +4,7 @@ package storage_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -15,12 +16,7 @@ import (
 	"question-voting-app/internal/storage"
 )
 
-// TestCreateSessionData_DuplicateKeyError verifies that inserting two sessions
-// with the same sessionId returns an error that mongo.IsDuplicateKeyError
-// correctly identifies — even after the storage layer wraps it with fmt.Errorf("%w").
-// This guards against regressions where the wrapping changes from %w to %s,
-// which would silently break the collision-retry logic in the handler.
-func TestCreateSessionData_DuplicateKeyError(t *testing.T) {
+func TestMongoStorageCRUD(t *testing.T) {
 	ctx := context.Background()
 
 	mongoContainer, err := mongodb.Run(ctx, "mongo:7")
@@ -45,25 +41,93 @@ func TestCreateSessionData_DuplicateKeyError(t *testing.T) {
 		t.Fatalf("failed to configure indexes: %v", err)
 	}
 
+	testStorerCRUD(t, store)
+}
+
+func TestSQLiteStorageCRUD(t *testing.T) {
+	store, err := storage.NewSQLiteStorage(":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	if err := store.ConfigureIndexes(context.Background()); err != nil {
+		t.Fatalf("failed to configure indexes: %v", err)
+	}
+
+	testStorerCRUD(t, store)
+}
+
+func testStorerCRUD(t *testing.T, store storage.Storer) {
+	t.Helper()
+	ctx := context.Background()
+
 	session := &models.SessionData{
-		SessionID:    "my-session",
-		SessionTitle: "My Session",
+		SessionID:    "test-session",
+		SessionTitle: "Test Session",
 		IsActive:     true,
-		CreatedAt:    time.Now(),
+		CreatedAt:    time.Now().Truncate(time.Second),
 		Questions:    []models.Question{},
 	}
 
-	if err := store.CreateSessionData(ctx, session); err != nil {
-		t.Fatalf("first insert failed unexpectedly: %v", err)
-	}
+	t.Run("create", func(t *testing.T) {
+		if err := store.CreateSessionData(ctx, session); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 
-	err = store.CreateSessionData(ctx, session)
-	if err == nil {
-		t.Fatal("expected a duplicate key error on second insert, got nil")
-	}
+	t.Run("create duplicate returns ErrDuplicateKey", func(t *testing.T) {
+		err := store.CreateSessionData(ctx, session)
+		if !errors.Is(err, storage.ErrDuplicateKey) {
+			t.Fatalf("expected ErrDuplicateKey, got: %v", err)
+		}
+	})
 
-	if !mongo.IsDuplicateKeyError(err) {
-		t.Errorf("mongo.IsDuplicateKeyError returned false on the wrapped error; "+
-			"the error wrapping in CreateSessionData may have broken unwrapping — error was: %v", err)
-	}
+	t.Run("load", func(t *testing.T) {
+		got, err := store.LoadSessionData(ctx, session.SessionID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got.SessionID != session.SessionID {
+			t.Errorf("SessionID: got %q, want %q", got.SessionID, session.SessionID)
+		}
+		if got.SessionTitle != session.SessionTitle {
+			t.Errorf("SessionTitle: got %q, want %q", got.SessionTitle, session.SessionTitle)
+		}
+	})
+
+	t.Run("load missing returns ErrNotFound", func(t *testing.T) {
+		_, err := store.LoadSessionData(ctx, "does-not-exist")
+		if !errors.Is(err, storage.ErrNotFound) {
+			t.Fatalf("expected ErrNotFound, got: %v", err)
+		}
+	})
+
+	t.Run("update", func(t *testing.T) {
+		session.SessionTitle = "Updated Title"
+		session.Questions = []models.Question{
+			{ID: "q1", Text: "First question", Votes: 3, Voters: []string{"a", "b", "c"}},
+		}
+		if err := store.UpdateSessionData(ctx, session); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		got, err := store.LoadSessionData(ctx, session.SessionID)
+		if err != nil {
+			t.Fatalf("load after update failed: %v", err)
+		}
+		if got.SessionTitle != "Updated Title" {
+			t.Errorf("SessionTitle not persisted: got %q", got.SessionTitle)
+		}
+		if len(got.Questions) != 1 || got.Questions[0].Votes != 3 {
+			t.Errorf("Questions not persisted correctly: %+v", got.Questions)
+		}
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		if err := store.DeleteSessionData(ctx, session.SessionID); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_, err := store.LoadSessionData(ctx, session.SessionID)
+		if !errors.Is(err, storage.ErrNotFound) {
+			t.Fatalf("expected ErrNotFound after delete, got: %v", err)
+		}
+	})
 }

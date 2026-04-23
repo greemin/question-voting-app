@@ -21,31 +21,38 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// --- Dependencies Setup ---
-	if cfg.MongoURI == "" {
-		log.Fatal("MONGO_URI environment variable not set")
+	ctx := context.Background()
+
+	var storer storage.Storer
+	switch cfg.DBDriver {
+	case "mongodb":
+		if cfg.MongoURI == "" {
+			log.Fatal("MONGO_URI environment variable not set")
+		}
+		connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		clientOptions := options.Client().ApplyURI(cfg.MongoURI)
+		client, err := mongo.Connect(clientOptions)
+		if err != nil {
+			log.Fatalf("Failed to connect to MongoDB: %v", err)
+		}
+		if err = client.Ping(connCtx, nil); err != nil {
+			log.Fatalf("Failed to ping MongoDB: %v", err)
+		}
+		fmt.Println("Connected to MongoDB!")
+		storer = storage.NewMongoStorage(client, "question-voting-app", "sessions")
+
+	default: // "sqlite"
+		sqliteStorer, err := storage.NewSQLiteStorage(cfg.SQLiteFile)
+		if err != nil {
+			log.Fatalf("Failed to open SQLite database: %v", err)
+		}
+		storer = sqliteStorer
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	clientOptions := options.Client().ApplyURI(cfg.MongoURI)
-	client, err := mongo.Connect(clientOptions)
-	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB: %v", err)
-	}
-
-	// Check the connection
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatalf("Failed to ping MongoDB: %v", err)
-	}
-
-	fmt.Println("Connected to MongoDB!")
-
-	storer := storage.NewMongoStorage(client, "question-voting-app", "sessions")
 	if err := storer.ConfigureIndexes(ctx); err != nil {
-		log.Fatalf("Failed to configure MongoDB indexes: %v", err)
+		log.Fatalf("Failed to configure storage: %v", err)
 	}
 
 	isProduction := os.Getenv("ENV") == "production"

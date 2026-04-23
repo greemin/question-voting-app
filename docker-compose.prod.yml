@@ -3,13 +3,18 @@ services:
     image: ghcr.io/greemin/question-voting-app/backend:${TAG:-latest}
     restart: unless-stopped
     environment:
-      - MONGO_URI=${MONGO_URI}
+      - DB_DRIVER=${DB_DRIVER:-sqlite}
+      - SQLITE_FILE=${SQLITE_FILE:-/data/data.db}
+      - MONGO_URI=${MONGO_URI:-}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - PORT=8081
       - ENV=production
     depends_on:
       mongo:
         condition: service_healthy
+        required: false
+    volumes:
+      - sqlite-data:/data
     networks:
       - frontend-network
       - backend-network
@@ -42,6 +47,8 @@ services:
       - frontend-network
 
   mongo:
+    profiles:
+      - mongo
     image: mongo:${MONGO_VERSION:-latest}
     restart: unless-stopped
     command: ["--auth", "--quiet"]
@@ -70,6 +77,7 @@ services:
       - frontend-network
 
 volumes:
+  sqlite-data:
   mongo-data:
   caddy-data:
   caddy-config:

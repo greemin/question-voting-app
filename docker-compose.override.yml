@@ -5,12 +5,15 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./services/backend:/app
+      - sqlite-dev-data:/data
     ports:
       - "8081:8081"
     environment:
       - PORT=8081
       - APP_ENV=dev
       - APP_USER=air
+      - DB_DRIVER=${DB_DRIVER:-sqlite}
+      - SQLITE_FILE=/data/data.db
       - MONGO_URI=mongodb://devroot:devpassword@mongo:27017/?authSource=admin
       - CORS_ORIGINS=http://localhost:5173
       - ENV=development
@@ -35,3 +38,6 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=devroot
       - MONGO_INITDB_ROOT_PASSWORD=devpassword
+
+volumes:
+  sqlite-dev-data:

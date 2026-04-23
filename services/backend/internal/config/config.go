@@ -11,6 +11,8 @@ type Config struct {
 	MongoURI     string
 	CORSOrigins  string
 	SecureCookie bool
+	DBDriver     string // "sqlite" (default) or "mongodb"
+	SQLiteFile   string // path to SQLite database file
 }
 
 func Load() *Config {
@@ -23,7 +25,7 @@ func Load() *Config {
 			"\033[31m* This setup is NOT SECURE and should NOT be used in production.*\033[0m\n" +
 			"\033[31m* To run in production, set the ENV environment variable to     *\033[0m\n" +
 			"\033[31m* 'production' and ensure all other environment variables       *\033[0m\n" +
-			"\033[31m* (e.g. MONGO_URI, CORS_ORIGINS, PORT) are configured securely. *\033[0m\n" +
+			"\033[31m* (e.g. DB_DRIVER, CORS_ORIGINS, PORT) are configured securely. *\033[0m\n" +
 			"\033[31m*****************************************************************\033[0m\n" +
 			"\n")
 	}
@@ -33,6 +35,8 @@ func Load() *Config {
 		MongoURI:     getEnvOrDefault("MONGO_URI", "mongodb://devroot:devpassword@localhost:27017"),
 		CORSOrigins:  getEnvOrDefault("CORS_ORIGINS", "http://localhost:5174"),
 		SecureCookie: strings.ToLower(os.Getenv("ENV")) == "production",
+		DBDriver:     getEnvOrDefault("DB_DRIVER", "sqlite"),
+		SQLiteFile:   getEnvOrDefault("SQLITE_FILE", "data.db"),
 	}
 }
 
