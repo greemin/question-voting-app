@@ -170,6 +170,7 @@ This document outlines the development plan for the application. Phases are orga
     -   [x] **Deploy to Hetzner** Successfully deployed test image to Hetzner and checked that reactivity stills works with TLS setup.
     -   [x] **Merge to master**
 
+-   [x] **Load Testing:** Updated k6 script handles nginx 429s via `responseCallback` and tracks rate-limited fraction as a custom metric. WS scenario uses a pre-created session pool from `setup()` to avoid burning the session rate limit. Two runs executed against production: smoke (10+10 VUs) and load (250+50 VUs). Results in `k6/results/NGINX.md`. Key finding: zero real failures (5xx/timeouts) at both VU counts — nginx absorbs excess load as fast 429s without backpressuring into Go. SQLite HTTP latency at smoke (p95=31ms) matches MongoDB baseline (33ms).
 ---
 
 ### 🔮 **Backlog, Tech-Debt and Long-Term Goals**
@@ -182,7 +183,7 @@ This document outlines the development plan for the application. Phases are orga
 -   [x] **Add document title config** Browser document title can be set via APP_NAME env variable.
 -   [x] **Add docker image hash to asset file names** Identifies builds and handles cache busting.
 
--   [ ] **Load Testing:** New k6 scripts after testing performance with SQLite and nginx limits. Results in k6/results again.
+-   [ ] **Backend Performance Load Test (SQLite vs MongoDB):** The nginx rate limit test (`k6/results/NGINX.md`) only validates load-shedding behavior — all meaningful traffic is rejected as 429 before reaching Go. A proper SQLite vs MongoDB latency comparison requires hitting the backend directly on port 8081, bypassing nginx. Needs either an SSH tunnel to the VPS backend port (tunnel test was attempted but failed — backend returned unexpected status codes, root cause unknown) or a staging environment matching Hetzner specs. Script will need `BASE_URL`/`WS_BASE` env vars to point at the backend directly.
 
 -   [ ] **IP-based vote deduplication:** Votes are currently deduplicated by `userSessionId` cookie. A script that fetches a fresh cookie per request (one `GET /api/session/{id}` then one `PUT .../vote`) can still cast unlimited votes — nginx rate limiting (30/min) slows this but doesn't stop it. Fix: store the submitter IP on each vote entry and reject if the same IP already voted on that question, mirroring the existing `BannedIPs` / `SubmitterIP` mechanism on questions. Tradeoff: one vote per question per shared IP (office NAT, university networks).
 
