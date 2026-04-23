@@ -57,11 +57,17 @@ func (s *SQLiteStorage) runCleanup() {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 	for range ticker.C {
-		cutoff := time.Now().Add(-24 * time.Hour).UTC().Format(time.RFC3339)
-		if _, err := s.db.Exec(`DELETE FROM sessions WHERE created_at < ?`, cutoff); err != nil {
+		if err := s.Cleanup(); err != nil {
 			fmt.Printf("SQLite TTL cleanup error: %v\n", err)
 		}
 	}
+}
+
+// Cleanup deletes all sessions older than 24 hours.
+func (s *SQLiteStorage) Cleanup() error {
+	cutoff := time.Now().Add(-24 * time.Hour).UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(`DELETE FROM sessions WHERE created_at < ?`, cutoff)
+	return err
 }
 
 func (s *SQLiteStorage) LoadSessionData(ctx context.Context, sessionID string) (*models.SessionData, error) {

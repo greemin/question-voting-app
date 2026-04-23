@@ -56,6 +56,47 @@ func TestSQLiteStorageCRUD(t *testing.T) {
 	testStorerCRUD(t, store)
 }
 
+func TestSQLiteStorageTTL(t *testing.T) {
+	ctx := context.Background()
+
+	store, err := storage.NewSQLiteStorage(":memory:")
+	if err != nil {
+		t.Fatalf("failed to open sqlite: %v", err)
+	}
+	if err := store.ConfigureIndexes(ctx); err != nil {
+		t.Fatalf("failed to configure indexes: %v", err)
+	}
+
+	old := &models.SessionData{
+		SessionID: "old-session",
+		CreatedAt: time.Now().Add(-25 * time.Hour),
+		Questions: []models.Question{},
+	}
+	recent := &models.SessionData{
+		SessionID: "recent-session",
+		CreatedAt: time.Now(),
+		Questions: []models.Question{},
+	}
+
+	if err := store.CreateSessionData(ctx, old); err != nil {
+		t.Fatalf("failed to create old session: %v", err)
+	}
+	if err := store.CreateSessionData(ctx, recent); err != nil {
+		t.Fatalf("failed to create recent session: %v", err)
+	}
+
+	if err := store.Cleanup(); err != nil {
+		t.Fatalf("cleanup failed: %v", err)
+	}
+
+	if _, err := store.LoadSessionData(ctx, old.SessionID); !errors.Is(err, storage.ErrNotFound) {
+		t.Errorf("expected old session to be deleted, got: %v", err)
+	}
+	if _, err := store.LoadSessionData(ctx, recent.SessionID); err != nil {
+		t.Errorf("expected recent session to survive cleanup, got: %v", err)
+	}
+}
+
 func testStorerCRUD(t *testing.T, store storage.Storer) {
 	t.Helper()
 	ctx := context.Background()
