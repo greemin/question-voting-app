@@ -165,7 +165,10 @@ This document outlines the development plan for the application. Phases are orga
 
 -   [x] **Fix document title config** Custom document title does not work on HomePage. Fix it and add tests.
 
--   [ ] **SQLite storage backend:** Add `SQLiteStorer` implementing the existing `Storer` interface as an alternative to MongoDB. Store questions and voters as a JSON column on the sessions table (maps naturally to the current whole-doc-replace update pattern). Replace MongoDB's TTL index with a periodic cleanup goroutine. Wire up via a `DB_DRIVER` env var in `main.go`. Use `modernc.org/sqlite` (pure Go, no CGo). Selectable via `DB_DRIVER` env var alongside MongoDB — not a replacement, just an additional option. When using SQLite the MongoDB container can simply be omitted from the stack. SQLite should be the new default. Extract mongodb logic first.
+-   [.] **SQLite storage backend:** Add `SQLiteStorer` implementing the existing `Storer` interface as an alternative to MongoDB. Store questions and voters as a JSON column on the sessions table (maps naturally to the current whole-doc-replace update pattern). Replace MongoDB's TTL index with a periodic cleanup goroutine. Wire up via a `DB_DRIVER` env var in `main.go`. Use `modernc.org/sqlite` (pure Go, no CGo). Selectable via `DB_DRIVER` env var alongside MongoDB — not a replacement, just an additional option. When using SQLite the MongoDB container can simply be omitted from the stack. SQLite should be the new default. Extract mongodb logic first.
+    -   [x] **Deploy to Pi** Successfully deployed test image to Pi and checked that reactivity stills works.
+    -   [ ] **Deploy to Hetzner** Successfully deployed test image to Hetzner and checked that reactivity stills works with TLS setup.
+    -   [ ] **Merge to master**
 
 ---
 
@@ -178,6 +181,8 @@ This document outlines the development plan for the application. Phases are orga
 -   [x] **Insecure Direct Object Reference (IDOR):** Resolved — router migrated to Go 1.22 native path parameters (`{session_id}`, `{question_id}`). All handlers use `r.PathValue()`, no manual path splitting remains.
 -   [x] **Add document title config** Browser document title can be set via APP_NAME env variable.
 -   [x] **Add docker image hash to asset file names** Identifies builds and handles cache busting.
+
+-   [ ] **Load Testing:** New k6 scripts after testing performance with SQLite and nginx limits. Results in k6/results again.
 
 -   [ ] **IP-based vote deduplication:** Votes are currently deduplicated by `userSessionId` cookie. A script that fetches a fresh cookie per request (one `GET /api/session/{id}` then one `PUT .../vote`) can still cast unlimited votes — nginx rate limiting (30/min) slows this but doesn't stop it. Fix: store the submitter IP on each vote entry and reject if the same IP already voted on that question, mirroring the existing `BannedIPs` / `SubmitterIP` mechanism on questions. Tradeoff: one vote per question per shared IP (office NAT, university networks).
 
