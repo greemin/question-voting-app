@@ -35,9 +35,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set image tag
-        id: tag
-        run: echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      - name: Set image tags
+        id: tags
+        run: |
+          SHA="${GITHUB_SHA::7}"
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          if [ -z "$BRANCH" ]; then BRANCH="${{ github.ref_name }}"; fi
+
+          {
+            echo "backend<<EOF"
+            echo "${{ env.IMAGE_PREFIX }}/backend:$SHA"
+            if [ "$BRANCH" = "master" ]; then
+              echo "${{ env.IMAGE_PREFIX }}/backend:latest"
+            fi
+            echo "EOF"
+
+            echo "frontend<<EOF"
+            echo "${{ env.IMAGE_PREFIX }}/frontend:$SHA"
+            if [ "$BRANCH" = "master" ]; then
+              echo "${{ env.IMAGE_PREFIX }}/frontend:latest"
+            fi
+            echo "EOF"
+
+            echo "sha=$SHA"
+          } >> $GITHUB_OUTPUT
 
       - name: Build and push backend
         uses: docker/build-push-action@v6
@@ -46,9 +67,7 @@ jobs:
           file: ./services/backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}/backend:${{ steps.tag.outputs.sha }}
-            ${{ env.IMAGE_PREFIX }}/backend:latest
+          tags: ${{ steps.tags.outputs.backend }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -57,8 +76,6 @@ jobs:
           file: ./services/frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}/frontend:${{ steps.tag.outputs.sha }}
-            ${{ env.IMAGE_PREFIX }}/frontend:latest
+          tags: ${{ steps.tags.outputs.frontend }}
           build-args: |
-            VITE_BUILD_SHA=${{ steps.tag.outputs.sha }}
+            VITE_BUILD_SHA=${{ steps.tags.outputs.sha }}
