@@ -7,7 +7,8 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/testcontainers/testcontainers-go/modules/mongodb v0.42.0
 	go.mongodb.org/mongo-driver/v2 v2.3.0
-	golang.org/x/text v0.34.0
+	golang.org/x/text v0.37.0
+	modernc.org/sqlite v1.49.1
 )
 
 require (
@@ -67,12 +68,11 @@ require (
 	go.opentelemetry.io/otel v1.41.0 // indirect
 	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.72.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.49.1 // indirect
 )
