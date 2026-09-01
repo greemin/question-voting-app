@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/testcontainers/testcontainers-go/modules/mongodb v0.42.0
-	go.mongodb.org/mongo-driver/v2 v2.3.0
+	go.mongodb.org/mongo-driver/v2 v2.4.2
 	golang.org/x/text v0.37.0
 	modernc.org/sqlite v1.49.1
 )
